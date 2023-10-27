@@ -33,6 +33,25 @@ const availabilitySchema = new Schema(
         },
       },
     ],
+    booking: [
+      {
+        date: {
+          type: Date,
+        },
+        slotId: {
+          type: String,
+        },
+        userId: {
+          type: String,
+        },
+        experienceIdId: {
+          type: String,
+        },
+        userEmail: {
+          type: String,
+        },
+      },
+    ],
   },
   { timestamps: true }
 );

@@ -5,22 +5,31 @@ const User = require("../models/User.model.js");
 const Availability = require("../models/Availability.model");
 const { authenticateUser } = require("../middleware/authMiddleware.js");
 const multer = require("multer");
+const stripe = require("stripe")(process.env.SECRET_STRIPE_KEY);
 const router = express.Router();
 
 //get a post
 router.get("/:id", async (req, res) => {
   try {
     const { id } = req.params;
+
     const experience = await Experience.findById(id);
     if (!experience) {
-      return res.status(404).json("Experience not found");
+      return res.status(404).json("Experience not founded");
     }
+    const availability = await Availability.find({ experienceId: id });
+    if (!availability) {
+      return res.status(404).json("This experience's availability not founded");
+    }
+
     const userId = experience.userId;
+
     const owner = await User.findById(userId);
     if (!owner) {
-      return res.status(404).json("User not found");
+      return res.status(404).json("User not founded");
     }
-    res.status(200).json({ experience, owner });
+
+    res.status(200).json({ experience, owner, availability });
   } catch (error) {
     res.status(500).json("Failed to find the post!");
   }
@@ -139,17 +148,17 @@ router.post(
       const experienceId = savedExperience._id;
       const dateMaxGuestPairs = [];
 
-      const currentDate = moment(startDate, moment.ISO_8601); // Start date of the experience
-      const endDateMoment = moment(endDate, moment.ISO_8601); // End date of the experience
+      const currentDate = moment(startDate); // Start date of the experience
+      const endDateMoment = moment(endDate); // End date of the experience
 
       while (currentDate.isSameOrBefore(endDateMoment)) {
         dateMaxGuestPairs.push({
-          date: currentDate.toDate(),
-          startTime,
-          endTime,
+          startTime, // Add startTime
+          endTime, // Add endTime
           maxGuest,
           price,
           currency,
+          date: currentDate.toDate(),
         });
         currentDate.add(1, "day");
       }
@@ -254,7 +263,7 @@ router.put(
 );
 
 //delete a post
-router.delete("/updateAExperience/:id", authenticateUser, async (req, res) => {
+router.delete("/deleteAExperience/:id", authenticateUser, async (req, res) => {
   try {
     // console.log('deleting an experience for now');
     const { id } = req.params;
@@ -268,6 +277,12 @@ router.delete("/updateAExperience/:id", authenticateUser, async (req, res) => {
       res.status(200).json("The experience has been deleted.");
     } else {
       res.status(500).json("You can delete only your experience!");
+    }
+    const availability = await Availability.findOneAndDelete({
+      experienceId: experience.id,
+    });
+    if (!availability) {
+      res.status(404).json("I cannot find the availiable slot!");
     }
   } catch (error) {
     res.status(500).json("Failed to delete the experience post!");
@@ -289,6 +304,65 @@ router.put(":id/experience/like", async (req, res) => {
     }
   } catch (error) {
     res.status(500).json("Failed to give a like to the post!");
+  }
+});
+
+router.post("/booking/create-payment-intent", async (req, res) => {
+  try {
+    const { experienceId, dateMaxGuestPairId, userEmail, userId } = req.body;
+    const experience = await Experience.findById(experienceId);
+
+    if (!experience) {
+      return res.status(400).json("The experience cannot be found!");
+    }
+
+    const availability = await Availability.findOne({
+      experienceId: experience.id,
+    });
+
+    if (!availability) {
+      return res.status(400).json("The slot cannot be found!");
+    }
+
+    // Find the specific dateMaxGuestPair using its ID
+    const selectedDateMaxGuestPair = availability.dateMaxGuestPairs.find(
+      (pair) => pair._id.toString() === dateMaxGuestPairId
+    );
+
+    if (!selectedDateMaxGuestPair) {
+      return res
+        .status(400)
+        .json("The selected dateMaxGuestPair cannot be found!");
+    }
+
+    // Decrease maxGuest by one
+    if (selectedDateMaxGuestPair.maxGuest > 0) {
+      selectedDateMaxGuestPair.maxGuest -= 1;
+    } else {
+      return res.status(400).json("No more available maxGuest for this slot.");
+    }
+
+    // Create a new booking entry using req.body data
+    const newBooking = {
+      date: selectedDateMaxGuestPair.date,
+      slotId: dateMaxGuestPairId,
+      userId,
+      experienceIdId: experienceId, // Fix the typo in the field name
+      userEmail,
+    };
+
+    // Push the new booking into the booking array
+    availability.booking.push(newBooking);
+
+    // Save the updated availability document
+    await availability.save();
+
+    // You can include Stripe payment logic here if needed
+
+    // Send a response back to the client
+    res.json({ message: "Booking successful" });
+  } catch (error) {
+    res.status(500).json("Server error!");
   }
 });
 
