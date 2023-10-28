@@ -55,6 +55,7 @@ router.get("/", async (req, res) => {
     const experiences = await Experience.aggregate([
       {
         $match: {
+          // startDate: { $eq: new Date() },
           endDate: { $gte: new Date() }, // End date is greater than or equal to today
         },
       },
@@ -148,13 +149,13 @@ router.post(
       const experienceId = savedExperience._id;
       const dateMaxGuestPairs = [];
 
-      const currentDate = moment(startDate); // Start date of the experience
-      const endDateMoment = moment(endDate); // End date of the experience
+      const currentDate = moment(startDate);
+      const endDateMoment = moment(endDate);
 
       while (currentDate.isSameOrBefore(endDateMoment)) {
         dateMaxGuestPairs.push({
-          startTime, // Add startTime
-          endTime, // Add endTime
+          startTime,
+          endTime,
           maxGuest,
           price,
           currency,
@@ -289,8 +290,24 @@ router.delete("/deleteAExperience/:id", authenticateUser, async (req, res) => {
   }
 });
 
+//get user's all booking list
+router.get('/BookedExperience/:userId', async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    // Use Mongoose to find all bookings with the given userId
+    const bookings = await Availability.find({ 'booking.userId': userId });
+
+    // Respond with the list of bookings
+    res.json({ bookings });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Failed to find bookings' });
+  }
+});
+
 //likes post
-router.put(":id/experience/like", async (req, res) => {
+router.put(":id/experience/like", authenticateUser, async (req, res) => {
   try {
     const { id } = req.params.id;
     const { userId } = req.body;
@@ -307,18 +324,77 @@ router.put(":id/experience/like", async (req, res) => {
   }
 });
 
-router.post("/booking/create-payment-intent", async (req, res) => {
-  try {
-    const { experienceId, dateMaxGuestPairId, userEmail, userId } = req.body;
-    const experience = await Experience.findById(experienceId);
+router.post(
+  "/booking/create-payment-intent",
+  authenticateUser,
+  async (req, res) => {
+    try {
+      const { experienceId, dateMaxGuestPairId, userEmail, userId } = req.body;
+      const experience = await Experience.findById(experienceId);
 
-    if (!experience) {
-      return res.status(400).json("The experience cannot be found!");
+      if (!experience) {
+        return res.status(400).json("The experience cannot be found!");
+      }
+
+      const availability = await Availability.findOne({
+        experienceId: experience.id,
+      });
+
+      if (!availability) {
+        return res.status(400).json("The slot cannot be found!");
+      }
+
+      // Find the specific dateMaxGuestPair using its ID
+      const selectedDateMaxGuestPair = availability.dateMaxGuestPairs.find(
+        (pair) => pair._id.toString() === dateMaxGuestPairId
+      );
+
+      if (!selectedDateMaxGuestPair) {
+        return res
+          .status(400)
+          .json("The selected dateMaxGuestPair cannot be found!");
+      }
+
+      // Decrease maxGuest by one
+      if (selectedDateMaxGuestPair.maxGuest > 0) {
+        selectedDateMaxGuestPair.maxGuest -= 1;
+      } else {
+        return res
+          .status(400)
+          .json("No more available maxGuest for this slot.");
+      }
+
+      // Create a new booking entry using req.body data
+      const newBooking = {
+        date: selectedDateMaxGuestPair.date,
+        slotId: dateMaxGuestPairId,
+        userId,
+        experienceIdId: experienceId, // Fix the typo in the field name
+        userEmail,
+      };
+
+      // Push the new booking into the booking array
+      availability.booking.push(newBooking);
+
+      // Save the updated availability document
+      await availability.save();
+
+      // You can include Stripe payment logic here if needed
+
+      // Send a response back to the client
+      res.json({ message: "Booking successful" });
+    } catch (error) {
+      res.status(500).json("Server error!");
     }
+  }
+);
 
-    const availability = await Availability.findOne({
-      experienceId: experience.id,
-    });
+// Cancel a booking and open up a slot
+router.post("/booking/cancel-booking", authenticateUser, async (req, res) => {
+  try {
+    const { experienceId, dateMaxGuestPairId, userId } = req.body;
+
+    const availability = await Availability.findOne({ experienceId });
 
     if (!availability) {
       return res.status(400).json("The slot cannot be found!");
@@ -335,33 +411,30 @@ router.post("/booking/create-payment-intent", async (req, res) => {
         .json("The selected dateMaxGuestPair cannot be found!");
     }
 
-    // Decrease maxGuest by one
-    if (selectedDateMaxGuestPair.maxGuest > 0) {
-      selectedDateMaxGuestPair.maxGuest -= 1;
-    } else {
-      return res.status(400).json("No more available maxGuest for this slot.");
+    // Check if the user had previously booked this slot
+    const bookedSlotIndex = availability.booking.findIndex((booking) => {
+      return booking.slotId === dateMaxGuestPairId && booking.userId === userId;
+    });
+
+    if (bookedSlotIndex === -1) {
+      return res.status(400).json("You haven't booked this slot.");
     }
 
-    // Create a new booking entry using req.body data
-    const newBooking = {
-      date: selectedDateMaxGuestPair.date,
-      slotId: dateMaxGuestPairId,
-      userId,
-      experienceIdId: experienceId, // Fix the typo in the field name
-      userEmail,
-    };
+    // Increase maxGuest by one
+    selectedDateMaxGuestPair.maxGuest += 1;
 
-    // Push the new booking into the booking array
-    availability.booking.push(newBooking);
+    // Remove the booking entry for this user
+    availability.booking.splice(bookedSlotIndex, 1);
 
     // Save the updated availability document
     await availability.save();
 
-    // You can include Stripe payment logic here if needed
+    // You can include refund logic or other actions as needed
 
     // Send a response back to the client
-    res.json({ message: "Booking successful" });
+    res.json({ message: "Booking canceled successfully" });
   } catch (error) {
+    console.error(error);
     res.status(500).json("Server error!");
   }
 });
