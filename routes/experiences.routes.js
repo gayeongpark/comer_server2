@@ -8,7 +8,7 @@ const multer = require("multer");
 const stripe = require("stripe")(process.env.SECRET_STRIPE_KEY);
 const router = express.Router();
 
-//get a post
+// Get a post
 router.get("/:id", async (req, res) => {
   try {
     const { id } = req.params;
@@ -237,7 +237,7 @@ router.put(
       const currentDate = moment(startDate, moment.ISO_8601); // Start date of the experience
       const endDateMoment = moment(endDate, moment.ISO_8601); // End date of the experience
 
-      while (currentDate.isSameOrBefore(endDateMoment)) {
+      while (currentDate?.isSameOrBefore(endDateMoment)) {
         dateMaxGuestPairs.push({
           date: currentDate.toDate(),
           startTime,
@@ -263,7 +263,7 @@ router.put(
   }
 );
 
-//delete a post
+// Delete a post
 router.delete("/deleteAExperience/:id", authenticateUser, async (req, res) => {
   try {
     // console.log('deleting an experience for now');
@@ -279,8 +279,9 @@ router.delete("/deleteAExperience/:id", authenticateUser, async (req, res) => {
     } else {
       res.status(500).json("You can delete only your experience!");
     }
+    console.log(experience._id);
     const availability = await Availability.findOneAndDelete({
-      experienceId: experience.id,
+      experienceId: experience._id,
     });
     if (!availability) {
       res.status(404).json("I cannot find the availiable slot!");
@@ -290,19 +291,18 @@ router.delete("/deleteAExperience/:id", authenticateUser, async (req, res) => {
   }
 });
 
-//get user's all booking list
-router.get('/BookedExperience/:userId', async (req, res) => {
-  const { userId } = req.params;
-
+// Get user's all booking list
+router.get("/bookedExperience/:userId", authenticateUser, async (req, res) => {
   try {
+    const { userId } = req.params;
     // Use Mongoose to find all bookings with the given userId
-    const bookings = await Availability.find({ 'booking.userId': userId });
+    const bookings = await Availability.find({ "booking.userId": userId });
 
     // Respond with the list of bookings
     res.json({ bookings });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Failed to find bookings' });
+    res.status(500).json({ error: "Failed to find bookings" });
   }
 });
 
@@ -344,6 +344,16 @@ router.post(
         return res.status(400).json("The slot cannot be found!");
       }
 
+      const existingBooking = availability.booking.find((booking) => {
+        return (
+          booking.userId === userId && booking.slotId === dateMaxGuestPairId
+        );
+      });
+
+      if (existingBooking) {
+        return res.status(400).json("You have already booked this slot.");
+      }
+
       // Find the specific dateMaxGuestPair using its ID
       const selectedDateMaxGuestPair = availability.dateMaxGuestPairs.find(
         (pair) => pair._id.toString() === dateMaxGuestPairId
@@ -367,9 +377,12 @@ router.post(
       // Create a new booking entry using req.body data
       const newBooking = {
         date: selectedDateMaxGuestPair.date,
+        startTime: selectedDateMaxGuestPair.startTime,
+        endTime: selectedDateMaxGuestPair.endTime,
         slotId: dateMaxGuestPairId,
         userId,
-        experienceIdId: experienceId, // Fix the typo in the field name
+        experienceTitle: experience.title,
+        experienceId: experienceId, // Fix the typo in the field name
         userEmail,
       };
 
@@ -389,69 +402,101 @@ router.post(
   }
 );
 
-// Cancel a booking and open up a slot
-router.post("/booking/cancel-booking", authenticateUser, async (req, res) => {
-  try {
-    const { experienceId, dateMaxGuestPairId, userId } = req.body;
+// // Cancel a booking and open up a slot
+// router.post("/booking/cancel-booking", authenticateUser, async (req, res) => {
+//   try {
+//     const { experienceId, dateMaxGuestPairId, userId } = req.body;
 
-    const availability = await Availability.findOne({ experienceId });
+//     const availability = await Availability.findOne({ experienceId });
 
-    if (!availability) {
-      return res.status(400).json("The slot cannot be found!");
+//     if (!availability) {
+//       return res.status(400).json("The slot cannot be found!");
+//     }
+
+//     // Find the specific dateMaxGuestPair using its ID
+//     const selectedDateMaxGuestPair = availability.dateMaxGuestPairs.find(
+//       (pair) => pair._id.toString() === dateMaxGuestPairId
+//     );
+
+//     if (!selectedDateMaxGuestPair) {
+//       return res
+//         .status(400)
+//         .json("The selected dateMaxGuestPair cannot be found!");
+//     }
+
+//     // Check if the user had previously booked this slot
+//     const bookedSlotIndex = availability.booking.findIndex((booking) => {
+//       return booking.slotId === dateMaxGuestPairId && booking.userId === userId;
+//     });
+
+//     if (bookedSlotIndex === -1) {
+//       return res.status(400).json("You haven't booked this slot.");
+//     }
+
+//     // Increase maxGuest by one
+//     selectedDateMaxGuestPair.maxGuest += 1;
+
+//     // Remove the booking entry for this user
+//     availability.booking.splice(bookedSlotIndex, 1);
+
+//     // Save the updated availability document
+//     await availability.save();
+
+//     // You can include refund logic or other actions as needed
+
+//     // Send a response back to the client
+//     res.json({ message: "Booking canceled successfully" });
+//   } catch (error) {
+//     console.error(error);
+//     res.status(500).json("Server error!");
+//   }
+// });
+
+router.delete(
+  "/cancel-booking/:bookingId",
+  authenticateUser,
+  async (req, res) => {
+    try {
+      const { bookingId } = req.params;
+      const bookings = await Availability.findOne({ "booking._id": bookingId });
+
+      if (!bookings) {
+        return res.status(404).json({ message: "Booking not found" });
+      }
+
+      // Find the index of the booking in the 'booking' array
+      const bookingIndex = bookings.booking.findIndex(
+        (b) => b._id.toString() === bookingId
+      );
+
+      if (bookingIndex === -1) {
+        return res.status(404).json({ message: "Booking not found" });
+      }
+
+      // Find the date of the canceled booking
+      const canceledBookingDate = bookings.booking[bookingIndex].date;
+
+      // Remove the booking from the 'booking' array
+      bookings.booking.splice(bookingIndex, 1);
+
+      // Update the 'dateMaxGuestPairs' array
+      bookings.dateMaxGuestPairs = bookings.dateMaxGuestPairs.map((pair) => {
+        if (pair.date.toString() === canceledBookingDate.toString()) {
+          // Increment 'maxGuest' by 1 for the matching date
+          pair.maxGuest += 1;
+        }
+        return pair;
+      });
+
+      // Save the updated document
+      await bookings.save();
+
+      return res.json({ message: "Booking canceled successfully" });
+    } catch (error) {
+      return res.status(500).json({ message: "Failed to cancel the booking" });
     }
-
-    // Find the specific dateMaxGuestPair using its ID
-    const selectedDateMaxGuestPair = availability.dateMaxGuestPairs.find(
-      (pair) => pair._id.toString() === dateMaxGuestPairId
-    );
-
-    if (!selectedDateMaxGuestPair) {
-      return res
-        .status(400)
-        .json("The selected dateMaxGuestPair cannot be found!");
-    }
-
-    // Check if the user had previously booked this slot
-    const bookedSlotIndex = availability.booking.findIndex((booking) => {
-      return booking.slotId === dateMaxGuestPairId && booking.userId === userId;
-    });
-
-    if (bookedSlotIndex === -1) {
-      return res.status(400).json("You haven't booked this slot.");
-    }
-
-    // Increase maxGuest by one
-    selectedDateMaxGuestPair.maxGuest += 1;
-
-    // Remove the booking entry for this user
-    availability.booking.splice(bookedSlotIndex, 1);
-
-    // Save the updated availability document
-    await availability.save();
-
-    // You can include refund logic or other actions as needed
-
-    // Send a response back to the client
-    res.json({ message: "Booking canceled successfully" });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json("Server error!");
   }
-});
-
-//get posts by tags
-//It must be revised
-router.get("/tags", async (req, res, next) => {
-  const tags = req.query.tags.split(",");
-  try {
-    const exeperience = await Experience.find({ tags: { $in: tags } }).limit(
-      20
-    );
-    res.status(200).json(exeperience);
-  } catch (error) {
-    next(error);
-  }
-});
+);
 
 //search
 //It must be revised

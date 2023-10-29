@@ -1,153 +1,135 @@
-const { Schema, model } = require('mongoose');
+const { Schema, model } = require("mongoose");
 // const User = require('./User.model');
 
+// Create a new Mongoose Schema for the "Experience" collection in the database
 const experienceSchema = new Schema(
   {
+    // Define the "userId" field to link experiences to users
     userId: {
       type: String,
     },
+    // Define fields for experience details
     title: {
       type: String,
-      require: true,
     },
     language: {
-      type: [String],
+      type: [String], // Array of strings
+      // Define a setter function to parse and format the language array
       set: function (language) {
         // Parse the stringified array and return it
+        // It is to make consistency in how the data is store and retrieved
+        // By parsing it, It made me easy to deal with array in the front end.
         return JSON.parse(language).map((lang) => lang.value);
       },
     },
     description: {
       type: String,
-      require: true,
     },
     runningTime: {
       type: Number,
     },
     minimumAge: {
       type: Number,
-      require: true,
     },
     country: {
       type: String,
-      require: true,
     },
     city: {
       type: String,
-      require: true,
     },
     state: {
       type: String,
-      require: true,
     },
     address: {
       type: String,
-      require: true,
     },
     criteriaOfGuest: {
       type: String,
-      require: true,
     },
     longitude: {
       type: Number,
-      require: true,
     },
     latitude: {
       type: Number,
-      require: true,
     },
     coordinates: {
-      type: [String],
-      require: true,
+      type: [String], // Array of strings
     },
     fullAddress: {
       type: String,
-      require: true,
     },
-    files: { type: [String], require: true },
-    likes: { type: [String] },
+    files: { type: [String] }, // Array of strings
+    likes: { type: [String] }, // Array of strings
     perks: {
       food: {
         type: String,
-        require: true,
       },
       beverage: {
         type: String,
-        require: true,
       },
       alcohol: {
         type: String,
-        require: true,
       },
       equipment: {
         type: String,
-        require: true,
       },
       others: {
         type: String,
-        require: true,
       },
     },
     notice: {
       type: String,
-      require: true,
     },
     startTime: {
       type: String,
-      require: true,
     },
     kidsAllowed: {
       type: Boolean,
-      require: true,
     },
     petsAllowed: {
       type: Boolean,
-      require: true,
     },
     endTime: {
       type: String,
-      require: true,
     },
     maxGuest: {
       type: Number,
-      require: true,
     },
     price: {
       type: Number,
-      require: true,
     },
     currency: {
       type: String,
-      require: true,
     },
     tags: {
-      type: [String],
-      require: true,
+      type: [String], // Array of strings
+      // Define a "set" function to parse and format the tags array
       set: function (tags) {
-        // Parse the stringified array and return it
+        // Parse the stringified array and return it as an array of values
+        // It is to make consistency in how the data is store and retrieved
         return JSON.parse(tags);
       },
     },
     startDate: {
       type: Date,
-      require: true,
     },
     endDate: {
       type: Date,
-      require: true,
     },
     cancellation1: {
       type: Boolean,
-      require: true,
     },
     cancellation2: {
       type: Boolean,
-      require: true,
     },
   },
+  // Include timestamps for "createdAt" and "updatedAt" fields
+  // This can be used later if my website is scaled much more
   { timestamps: true }
 );
 
-const Experience = model('Experience', experienceSchema);
+// Create a Mongoose model for the "Experience" collection using the defined schema
+const Experience = model("Experience", experienceSchema);
 
+// Export the Experience model for use in other parts of your application
 module.exports = Experience;
