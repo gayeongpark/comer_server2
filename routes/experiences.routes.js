@@ -196,8 +196,8 @@ router.put(
         return res.status(401).json("You can only update your own experience!");
       }
       let imageUrls = [];
-      if (req.files && req.files.length > 0) {
-        imageUrls = req.files.map((file) => file.path.replace(/\\/g, "/"));
+      if (req?.files && req?.files?.length > 0) {
+        imageUrls = req?.files?.map((file) => file.path.replace(/\\/g, "/"));
       }
       const {
         startTime,
@@ -216,6 +216,7 @@ router.put(
         const endMoment = moment(endTime, "h:mm A");
         const duration = moment.duration(endMoment.diff(startMoment));
         const runningTime = duration.asMinutes();
+
         if (runningTime <= 0) {
           return res.status(405).json("Please check the start and end times!");
         }
@@ -234,27 +235,32 @@ router.put(
       const experienceId = savedExperience._id;
       const dateMaxGuestPairs = [];
 
-      const currentDate = moment(startDate, moment.ISO_8601); // Start date of the experience
-      const endDateMoment = moment(endDate, moment.ISO_8601); // End date of the experience
+      const currentDate = moment(startDate); // Start date of the experience
+      const endDateMoment = moment(endDate); // End date of the experience
 
-      while (currentDate?.isSameOrBefore(endDateMoment)) {
+      // Revise
+
+      await Availability.deleteOne({ experienceId });
+      // As I delete the values and its data, I could not make new one.
+
+      while (currentDate.isSameOrBefore(endDateMoment)) {
         dateMaxGuestPairs.push({
-          date: currentDate.toDate(),
           startTime,
           endTime,
           maxGuest,
           price,
           currency,
+          date: currentDate.toDate(),
         });
         currentDate.add(1, "day");
       }
 
       // Find the corresponding availability document and update it
-      const availability = await Availability.findOne({ experienceId });
-      if (availability) {
-        availability.dateMaxGuestPairs = dateMaxGuestPairs;
-        await availability.save();
-      }
+      const newAvailability = new Availability({
+        experienceId,
+        dateMaxGuestPairs,
+      });
+      await newAvailability.save();
 
       res.status(200).json(savedExperience);
     } catch (error) {
@@ -297,7 +303,6 @@ router.get("/bookedExperience/:userId", authenticateUser, async (req, res) => {
     const { userId } = req.params;
     // Use Mongoose to find all bookings with the given userId
     const bookings = await Availability.find({ "booking.userId": userId });
-
     // Respond with the list of bookings
     res.json({ bookings });
   } catch (error) {
@@ -474,14 +479,14 @@ router.delete(
       }
 
       // Find the date of the canceled booking
-      const canceledBookingDate = bookings.booking[bookingIndex].date;
+      const canceledBookingDate = bookings.booking[bookingIndex].slotId;
 
       // Remove the booking from the 'booking' array
       bookings.booking.splice(bookingIndex, 1);
 
       // Update the 'dateMaxGuestPairs' array
       bookings.dateMaxGuestPairs = bookings.dateMaxGuestPairs.map((pair) => {
-        if (pair.date.toString() === canceledBookingDate.toString()) {
+        if (pair._id.toString() === canceledBookingDate.toString()) {
           // Increment 'maxGuest' by 1 for the matching date
           pair.maxGuest += 1;
         }
