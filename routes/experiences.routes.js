@@ -180,7 +180,8 @@ router.post(
   }
 );
 
-//update a post
+// Update experience
+// Because I also need to update availlability
 router.put(
   "/:id/updateExperience",
   authenticateUser,
@@ -207,9 +208,20 @@ router.put(
         maxGuest,
         price,
         currency,
+        cancellation1,
+        cancellation2,
+        kidsAllowed,
+        petsAllowed,
       } = req.body;
 
-      const updatedExperience = { files: imageUrls, ...req.body };
+      const updatedExperience = {
+        ...req.body, // Copy all properties from req.body
+      };
+
+      if (imageUrls.length > 0) {
+        // Only update the "files" property if imageUrls is not empty
+        updatedExperience.files = imageUrls;
+      }
 
       if (startTime && endTime) {
         const startMoment = moment(startTime, "h:mm A");
@@ -223,6 +235,26 @@ router.put(
         updatedExperience.runningTime = runningTime;
       }
 
+      // Update the startDate and endDate if new values are provided
+      if (startDate !== undefined) {
+        updatedExperience.startDate = startDate;
+      }
+      if (endDate !== undefined) {
+        updatedExperience.endDate = endDate;
+      }
+      if (cancellation1 !== experience.cancellation1) {
+        updatedExperience.cancellation1 = cancellation1;
+      }
+      if (cancellation2 !== experience.cancellation2) {
+        updatedExperience.cancellation2 = cancellation2;
+      }
+      if (kidsAllowed !== experience.kidsAllowed) {
+        updatedExperience.kidsAllowed = kidsAllowed;
+      }
+      if (petsAllowed !== experience.petsAllowed) {
+        updatedExperience.petsAllowed = petsAllowed;
+      }
+
       const savedExperience = await Experience.findByIdAndUpdate(
         id,
         updatedExperience,
@@ -231,39 +263,39 @@ router.put(
         }
       );
 
-      // Update availability data
-      const experienceId = savedExperience._id;
-      const dateMaxGuestPairs = [];
+      // // Update availability data
+      // const experienceId = savedExperience._id;
+      // const dateMaxGuestPairs = [];
 
-      const currentDate = moment(startDate); // Start date of the experience
-      const endDateMoment = moment(endDate); // End date of the experience
+      // const currentDate = moment(startDate); // Start date of the experience
+      // const endDateMoment = moment(endDate); // End date of the experience
 
-      // Revise
+      // // Delete existing availability
+      // await Availability.deleteOne({ experienceId });
 
-      await Availability.deleteOne({ experienceId });
-      // As I delete the values and its data, I could not make new one.
+      // while (currentDate.isSameOrBefore(endDateMoment)) {
+      //   dateMaxGuestPairs.push({
+      //     startTime,
+      //     endTime,
+      //     maxGuest,
+      //     price,
+      //     currency,
+      //     date: currentDate.toDate(),
+      //   });
+      //   currentDate.add(1, "day");
+      // }
 
-      while (currentDate.isSameOrBefore(endDateMoment)) {
-        dateMaxGuestPairs.push({
-          startTime,
-          endTime,
-          maxGuest,
-          price,
-          currency,
-          date: currentDate.toDate(),
-        });
-        currentDate.add(1, "day");
-      }
+      // // Create new availability
+      // const newAvailability = new Availability({
+      //   experienceId,
+      //   dateMaxGuestPairs,
+      // });
+      // await newAvailability.save();
 
-      // Find the corresponding availability document and update it
-      const newAvailability = new Availability({
-        experienceId,
-        dateMaxGuestPairs,
-      });
-      await newAvailability.save();
-
-      res.status(200).json(savedExperience);
+      // Now, after deleting and creating availability, send the response
+      res.status(200).json({ savedExperience });
     } catch (error) {
+      console.error(error); // Log the error for debugging
       res.status(500).json("Failed to update the experience post!");
     }
   }
