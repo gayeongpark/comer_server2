@@ -64,6 +64,9 @@ const experienceSchema = new Schema(
       food: {
         type: String,
       },
+      transportation: {
+        type: String,
+      },
       beverage: {
         type: String,
       },
