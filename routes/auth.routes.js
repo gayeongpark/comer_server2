@@ -26,13 +26,13 @@ router.post("/signup", async (req, res) => {
     // hash2 contains a hashed password from req.body.password2, which is the user's entered password, and a random string from previous step.
     if (password !== password2) {
       // If password and password2 are not same, it will be error!
-      return res.status(400).json("Password does not match");
+      return res.status(400).json({ error: "Password does not match" });
     }
     const user = await User.findOne({ email });
     // Attempt to find if there is same email value in the User data model using the email, wich is the user's entered email.
     if (user) {
       // check user existence.
-      return res.status(404).json("User already registered.");
+      return res.status(404).json({ error: "User already registered." });
     }
     const token = crypto.randomBytes(32).toString("hex");
     // A token is generated for email verification.
@@ -71,14 +71,15 @@ router.post("/signup", async (req, res) => {
       await newUser.remove();
       // If sending email verification will be failed, the saved user date will be removed.
       // Because it is to let user to make the account again with the same email and password.
-      return res
-        .status(400)
-        .json("Failed to send email verification. Please try again later.");
+      return res.status(400).json({
+        error: "Failed to send email verification. Please try again later.",
+      });
     }
-    res
-      .status(200)
-      .json("Welcome to Comer! Please check out your email inbox.");
+    res.status(200).json({
+      message: "Welcome to Comer! Please check out your email inbox.",
+    });
   } catch (error) {
+    // Handle any errors by returning a 500 status and an error message.
     res.status(500).json({
       error: "You could not successfully signup, please try it again!",
     });
@@ -107,6 +108,7 @@ router.get("/verifyEmail/:token", async (req, res, next) => {
       res.status(404).json("User not found!");
     }
   } catch (error) {
+    // Handle any errors by returning a 500 status and an error message.
     res.status(500).json({ error: "Server Error!" });
   }
 });
@@ -123,7 +125,7 @@ router.post("/login", verifyEmail, async (req, res) => {
     // console.log(user);
     // If no user is found with the provided email, return a 404 response.
     if (!user) {
-      return res.status(404).json("This user was not registered!");
+      return res.status(404).json({ error: "This user was not registered!" });
     }
 
     // Check if the provided password matches the user's stored password using bcrypt.compare function.
@@ -132,7 +134,7 @@ router.post("/login", verifyEmail, async (req, res) => {
     if (!isPasswordCorrect) {
       return res
         .status(403)
-        .json("Wrong password or username, please check out!");
+        .json({ error: "Wrong password or username, please check out!" });
     }
 
     // If the password is correct, create access and refresh tokens for the user.
@@ -172,6 +174,7 @@ router.post("/login", verifyEmail, async (req, res) => {
 
     // Prepare response data containing user information.
     // Save the resData to sent the data to front end.
+    // This is object json format
     const resData = {
       email: user.email,
       id: user.id,
@@ -181,21 +184,21 @@ router.post("/login", verifyEmail, async (req, res) => {
     // Return a 200 response with the user data.
     res.status(200).json(resData);
   } catch (error) {
-    // Return a 500 response if there is error.
+    // Handle any errors by returning a 500 status and an error message.
     res.status(500).json({ error: "Server Error!" });
   }
 });
 
 // This route handles the request for refreshing an access token using a refresh token.
 // Refreshing accessToken using refresh token
-router.post("/refreshtoken", async (req, res, next) => {
+router.post("/refreshtoken", async (req, res) => {
   try {
     // Retrieve the refresh token from the request cookies
     const refreshToken = req.cookies["refreshToken"];
 
     // If no refresh token is provided, return a 401 Unauthorized response
     if (!refreshToken) {
-      return res.status(401).json("You are not authenticated!");
+      return res.status(401).json({ error: "You are not authenticated!" });
     }
 
     // Verify the refresh token using the refresh token secret
@@ -204,7 +207,7 @@ router.post("/refreshtoken", async (req, res, next) => {
 
     // If the verification fails, return a 401 Unauthorized response
     if (!payload) {
-      return res.status(401).json("Unauthorized!");
+      return res.status(401).json({ error: "Unauthorized!" });
     }
 
     // Generate a new access token based on the payload of the refresh token
@@ -226,10 +229,10 @@ router.post("/refreshtoken", async (req, res, next) => {
     });
 
     // Return a 202 Accepted response indicating the successful re-issuance of the access token
-    res.status(202).json("Re-issued accessToken");
+    res.status(202).json({ message: "Re-issued accessToken" });
   } catch (error) {
     // If any error occurs during the refresh token process, pass it to the error handling middleware
-    next(error);
+    res.status(500).json({ error: "Server Error!" });
   }
 });
 
@@ -287,6 +290,7 @@ router.post("/forgotPassword", async (req, res) => {
       .status(200)
       .json("Please check your email! and then reset your password now!");
   } catch (error) {
+    // Handle any errors by returning a 500 status and an error message.
     res.status(500).json({ error: "Server Error!" });
   }
 });
@@ -321,6 +325,7 @@ router.post("/resetPassword", async (req, res) => {
     // Respond with a 202 status indicating successful password update.
     res.status(202).json("Password updated successfully!");
   } catch (error) {
+    // Handle any errors by returning a 500 status and an error message.
     res.status(500).json({ error: "Server Error!" });
   }
 });

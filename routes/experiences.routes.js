@@ -1,76 +1,103 @@
 const express = require("express");
-const moment = require("moment");
 const Experience = require("../models/Experience.model");
 const User = require("../models/User.model.js");
 const Availability = require("../models/Availability.model");
 const { authenticateUser } = require("../middleware/authMiddleware.js");
 const multer = require("multer");
-const stripe = require("stripe")(process.env.SECRET_STRIPE_KEY);
+// const stripe = require("stripe")(process.env.SECRET_STRIPE_KEY);
+// I will use stripe to payment
 const router = express.Router();
 
 // Get a post
 router.get("/:id", async (req, res) => {
   try {
+    // Extract the "id" parameter from the URL
+    // It is same id = req.params.id || { id } = req.params
     const { id } = req.params;
 
     const experience = await Experience.findById(id);
+    // If no experience is found, return a 404 Not Found response
     if (!experience) {
-      return res.status(404).json("Experience not founded");
+      return res.status(404).json({ error: "Experience not founded" });
     }
+    // Query the database to find availability records related to the experience
     const availability = await Availability.find({ experienceId: id });
+    // If no availability records are found, return a 404 Not Found response
     if (!availability) {
-      return res.status(404).json("This experience's availability not founded");
+      return res
+        .status(404)
+        .json({ error: "This experience's availability not founded" });
     }
 
+    // Extract the user ID associated with the found experience and save the data userId variable
     const userId = experience.userId;
 
+    // Query the database to find the user (owner) by their ID
     const owner = await User.findById(userId);
+    // If no user (owner) is found, return a 404 Not Found response
     if (!owner) {
-      return res.status(404).json("User not founded");
+      return res.status(404).json({ error: "User not founded" });
     }
 
+    // If all database queries are successful, return a 200 OK response
+    // with a JSON object containing the experience, owner, and availability
     res.status(200).json({ experience, owner, availability });
   } catch (error) {
-    res.status(500).json("Failed to find the post!");
+    // If an error occurs during the process, return a 500 Internal Server Error response
+    res.status(500).json({ error: "Failed to find the post!" });
   }
 });
 
 //get a user's all post
-router.get("/profile/:id", async (req, res) => {
+router.get("/profile/:id", authenticateUser, async (req, res) => {
   try {
+    // Extract the "id" parameter from the URL, which presumably represents the user's ID
     const { id } = req.params;
+
+    // Query the database to find all experiences (posts) associated with the user's ID
     const experience = await Experience.find({ userId: id });
+
+    // Check if there are no experiences found for this user
     if (experience.length === 0) {
-      return res.status(300).json("No experiences found for this user");
+      // Return a 300 Multiple Choices status code with a JSON message indicating no experiences found
+      return res
+        .status(300)
+        .json({ error: "No experiences found for this user" });
     }
+    // If experiences are found, return a 200 OK status code with the list of experiences as a JSON response
     res.status(200).json(experience);
   } catch (error) {
-    res.status(500).json("Failed to find the user's posts!");
+    res.status(500).json({ error: "Failed to find the user's posts!" });
   }
 });
 
 //get random post
 router.get("/", async (req, res) => {
   try {
+    // Use the MongoDB aggregation framework to query the database
+    // Aggregation operations process multiple documents and return computed results.
     const experiences = await Experience.aggregate([
       {
+        // First aggregation stage: Match experiences that meet specific criteria
         $match: {
-          // startDate: { $eq: new Date() },
+          startDate: { $gte: new Date() }, // Start date is greater than or equal to today
           endDate: { $gte: new Date() }, // End date is greater than or equal to today
         },
       },
+      // Second aggregation stage: Randomly sample 20 experiences from the matched results
       { $sample: { size: 20 } },
     ]);
+    // Respond with a 200 OK status code and a JSON array containing the random experiences
     res.status(200).json(experiences);
   } catch (error) {
-    res.status(500).json("I cannot find all posts!");
+    // If an error occurs during the process, respond with a 500 Internal Server Error status code
+    res.status(500).json({ error: "I cannot find all posts!" });
   }
 });
 
-//create a new post
+// Create a new post
 
-//1. Defined a storage engine for Multer that specifies where uploaded files should be stored and what name they should be given.
-
+// 1. Defined a storage engine for Multer that specifies where uploaded files should be stored and what name they should be given.
 const storage = multer.diskStorage({
   destination: (req, file, callback) => {
     // console.log('Destination:', file);
@@ -88,6 +115,7 @@ const upload = multer({
   fileFilter: (req, file, callback) => {
     // console.log(req)
     // console.log('File filter:', file);
+    // I am accpeting only png, jpg and jpeg.
     if (
       file.mimetype === "image/png" ||
       file.mimetype === "image/jpg" ||
@@ -103,15 +131,20 @@ const upload = multer({
 //3. If files were uploaded, it will set the profilePicture field in the request body to the path of the uploaded file. The path of the uploaded file will be available in req.files.path.
 router.post(
   "/createExperience",
-  authenticateUser,
-  upload.array("files", 5),
+  authenticateUser, // Middleware to authenticate the user
+  upload.array("files", 5), // Middleware for handling file uploads (up to 5 files)
   async (req, res) => {
+    // Asynchronous route handler
     try {
-      let imageUrls = [];
-      if (req.files && req.files.length > 0) {
+      let imageUrls = []; // Initialize an array to store image URLs
+      // If there is req.files(for images)
+      if (req?.files && req?.files?.length > 0) {
+        // Map the uploaded file paths and replace backslashes with forward slashes
+        // Because If do not replace the backslashes, the image url path is not great and cannot display correctly
         imageUrls = req.files.map((file) => file.path.replace(/\\/g, "/"));
       }
 
+      // Destructure the following properties from the request body because I need additional process to save the data correctly
       const {
         startTime,
         endTime,
@@ -123,15 +156,26 @@ router.post(
       } = req.body;
 
       // Custom function to parse time in "h:mm A" format to a Date object
+      // Take a single argument, timeStr, which is a time string in the "h:mm A" format
       const parseTime = (timeStr) => {
+        // Split the timeStr into two parts, hours and minutes, by using the colon (":") as a delimiter
         const [hours, minutes] = timeStr.split(":");
+        // Split the "hours" part into two sub-parts, h (for the numerical value of hours) and m (for the "AM" or "PM" part)
         const [h, m] = hours.split(" ");
+        // Parse the h (hours) as an integer, using base 10
+        // hour24 represents the 24-hour format of hours, initially based on the parsed h value
         let hours24 = parseInt(h, 10);
+        // Adjust the hours for AM and PM
+        // If m is "PM" and hours24 is not already 12, it adds 12 to hours24. This ensures that times like 1 PM become 13:00 in the 24-hour format
         if (m === "PM" && hours24 !== 12) {
           hours24 += 12;
+          // If m is "AM" and hours24 is 12 (midnight), it sets hours24 to 0. This ensures that times like 12:30 AM become 0:30 in the 24-hour format
         } else if (m === "AM" && hours24 === 12) {
           hours24 = 0;
         }
+        // Create a Date object with the parsed time
+        // Set the date, month, and year parts to 0 because the focus is only on the time.
+        // Use the adjusted hours24 and the parsed minutes to create a Date object representing the desired time in the 24-hour format.
         return new Date(0, 0, 0, hours24, parseInt(minutes, 10));
       };
 
@@ -140,18 +184,19 @@ router.post(
       const end = parseTime(endTime);
       const runningTime = (end - start) / (60 * 1000); // in minutes
 
+      // Check if runningTime is less than or equal to 0, and return an error response if it is
       if (runningTime <= 0) {
         return res
           .status(405)
-          .json("Please check the start time and end time!");
+          .json({ error: "Please check the start time and end time!" });
       }
 
-      // Create a new experience document
+      // Create a new experience document with various properties
       const newExperience = new Experience({
         userId: req.user.id,
         files: imageUrls,
         runningTime,
-        ...req.body,
+        ...req.body, // Include other properties from the request body
       });
 
       // Save the experience document
@@ -161,9 +206,12 @@ router.post(
       const experienceId = savedExperience._id;
       const dateMaxGuestPairs = [];
 
+      // Loop through each day within the specified date range
       const currentDate = new Date(startDate);
       const endDateMoment = new Date(endDate);
 
+      // This is a while loop that continues to execute as long as the currentDate is less than or equal to the endDateMoment
+      // It iterates through a range of dates, from currentDate to endDateMoment
       while (currentDate <= endDateMoment) {
         dateMaxGuestPairs.push({
           startTime,
@@ -173,7 +221,7 @@ router.post(
           currency,
           date: new Date(currentDate), // Clone the date
         });
-        currentDate.setDate(currentDate.getDate() + 1);
+        currentDate.setDate(currentDate.getDate() + 1); // Move to the next day
       }
 
       // Create a new availability document
@@ -182,54 +230,17 @@ router.post(
         dateMaxGuestPairs,
       });
 
-      // Save the availability document
+      // Save the availability document to the database
       await newAvailability.save();
 
+      // Respond with a success status (200) and the saved experience data
       res.status(200).json(savedExperience);
     } catch (error) {
-      res.status(500).json("Failed to create a new experience!");
+      // Handle any errors that occur during the process and respond with a 500 status code
+      res.status(500).json({ error: "Failed to create a new experience!" });
     }
   }
 );
-
-// Update experience
-// Because I also need to update availlability
-// router.put(
-//   "/:id/updateImage",
-//   authenticateUser,
-//   upload.array("files", 5),
-//   async (req, res) => {
-//     try {
-//       const { id } = req.params;
-//       const experience = await Experience.findById(id);
-
-//       if (!experience) {
-//         return res.status(404).json("The experience cannot be found!");
-//       }
-
-//       if (req.user.id !== experience.userId) {
-//         return res.status(401).json("You can only update your own experience!");
-//       }
-
-//       let imageUrls = [];
-//       if (req?.files && req?.files?.length > 0) {
-//         imageUrls = req?.files?.map((file) => file.path.replace(/\\/g, "/"));
-//       }
-//       await Experience.findByIdAndUpdate(
-//         id,
-//         { files: imageUrls },
-//         {
-//           new: true,
-//         }
-//       );
-
-//       res.status(200).json({ message: "Experience updated successfully" });
-//     } catch (error) {
-//       console.error(error); // Log the error for debugging
-//       res.status(500).json("Failed to update the experience post!");
-//     }
-//   }
-// );
 
 // update Image
 router.put(
@@ -485,13 +496,6 @@ router.put("/:id/updateTags", authenticateUser, async (req, res) => {
 
     const { tags } = req.body;
 
-    // Check if 'tags' is an array of strings
-    if (!Array.isArray(tags) || !tags.every((tag) => typeof tag === "string")) {
-      return res.status(400).json({
-        error: "Invalid 'tags' format. It should be an array of strings.",
-      });
-    }
-
     // Save the updated Experience document
     await Experience.findByIdAndUpdate(
       id,
@@ -693,8 +697,7 @@ router.put("/:id/updateAvailiability", authenticateUser, async (req, res) => {
       return res.status(401).json("You can only update your own experience!");
     }
 
-    const { minimumAge, startTime, endTime, maxGuest, startDate, endDate } =
-      req.body;
+    const { startTime, endTime, startDate, endDate } = req.body;
 
     // Custom function to parse time in "h:mm A" format to a Date object
     const parseTime = (timeStr) => {
@@ -722,10 +725,8 @@ router.put("/:id/updateAvailiability", authenticateUser, async (req, res) => {
       id,
       {
         runningTime,
-        minimumAge,
         startTime,
         endTime,
-        maxGuest,
         startDate,
         endDate,
       },
@@ -733,6 +734,9 @@ router.put("/:id/updateAvailiability", authenticateUser, async (req, res) => {
         new: true,
       }
     );
+    const maxGuest = experience.maxGuest;
+    const price = experience.price;
+    const currency = experience.currency;
 
     // Delete previous availability data
     await Availability.findOneAndDelete({ experienceId: id });
@@ -748,6 +752,8 @@ router.put("/:id/updateAvailiability", authenticateUser, async (req, res) => {
         endTime,
         maxGuest,
         date: new Date(currentDate), // Clone the date
+        currency,
+        price,
       });
       currentDate.setDate(currentDate.getDate() + 1);
     }
@@ -809,24 +815,6 @@ router.get("/bookedExperience/:userId", authenticateUser, async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Failed to find bookings" });
-  }
-});
-
-//likes post
-router.put(":id/experience/like", authenticateUser, async (req, res) => {
-  try {
-    const { id } = req.params.id;
-    const { userId } = req.body;
-    const exeperience = await Experience.findById(id);
-    if (!exeperience.likes.includes(userId)) {
-      await post.updateOne({ $push: { likes: userId } });
-      res.status(200).json("Post liked");
-    } else {
-      await post.updateOne({ $pull: { likes: userId } });
-      res.status(200).json("Post Unliked");
-    }
-  } catch (error) {
-    res.status(500).json("Failed to give a like to the post!");
   }
 });
 
@@ -909,7 +897,7 @@ router.post(
 );
 
 // Cancel a booking and open up a slot
-// It workd
+
 router.post("/booking/cancel-booking", authenticateUser, async (req, res) => {
   try {
     const { experienceId, dateMaxGuestPairId, userId } = req.body;
@@ -1005,8 +993,10 @@ router.delete(
   }
 );
 
-//search
-//It must be revised
+// Search
+// It must be revised
+// I did not implet search request to the client
+// It should be revised much more
 router.get("/search", async (req, res, next) => {
   try {
     const { city, startDate, endDate } = req.query;

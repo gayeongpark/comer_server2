@@ -24,7 +24,7 @@ router.get("/:id", authenticateUser, async (req, res) => {
     // Respond with a 200 status and the user's information.
     res.status(200).json(user);
   } catch (error) {
-    // Handle any errors by passing them to the error handler middleware.
+    // Handle any errors by returning a 500 status and an error message.
     res.status(500).json({ error: "Server Error!" });
   }
 });
@@ -43,8 +43,8 @@ router.get("/comments/:id", async (req, res, next) => {
     // Respond with a 200 status and the user's information.
     res.status(200).json(user);
   } catch (error) {
-    // Handle any errors by passing them to the error handler middleware.
-    next(error);
+    // Handle any errors by returning a 500 status and an error message.
+    res.status(500).json({ error: "Server Error!" });
   }
 });
 
@@ -122,21 +122,21 @@ router.put(
       // Respond with a 200 status and the updated user's information.
       res.status(200).json(updatedUser);
     } catch (error) {
-      // console.log('Error:', error);
+      // Handle any errors by returning a 500 status and an error message.
       res.status(500).json({ error: "Server Error!" });
     }
   }
 );
 
 // Delete user only when user is logged in.
-router.delete("/delete/:id", authenticateUser, async (req, res, next) => {
+router.delete("/delete/:id", authenticateUser, async (req, res) => {
   try {
     // Find and retrieve the user with the specified ID.
     const user = await User.findById(req.params.id);
 
     // Ensure that the user making the request is the same as the user being deleted.
     if (user.id !== req.user.id) {
-      return res.status(404).json("User not found.");
+      return res.status(404).json({ error: "User not found." });
     }
 
     // Set the user's "isActive" property to false to deactivate the account.
@@ -152,37 +152,46 @@ router.delete("/delete/:id", authenticateUser, async (req, res, next) => {
     res.clearCookie("refreshToken");
 
     // Respond with a 200 status and a message indicating that the account deletion process is initiated.
-    res.status(200).json("We are deleting your account. Please hold on...");
+    res
+      .status(200)
+      .json({ message: "We are deleting your account. Please hold on..." });
   } catch (error) {
-    // Handle any errors by passing them to the error handler middleware.
-    next(error);
+    // Handle any errors by returning a 500 status and an error message.
+    res.status(500).json({ error: "Server Error!" });
   }
 });
 
-//likes a posted experience
+// Likes a posted experience
 router.put("/likes/:id", authenticateUser, async (req, res) => {
   try {
     const userId = req.user.id;
-    // Retrieve the user's ID from the authenticated request.
+    const experienceId = req.params.id;
 
-    // Find the experience by its ID that the user wants to like or unlike.
-    const experience = await Experience.findById(req.params.id);
+    // Retrieve the authenticated user's ID and the experience ID from the request.
+    // console.log(`User ID: ${userId}`);
+    // console.log(`Experience ID: ${experienceId}`);
 
-    // Check if the experience with the given ID exists.
+    const experience = await Experience.findById(experienceId);
+
     if (!experience) {
+      // Check if the experience with the given ID exists; if not, return a 404 response.
       return res.status(404).json("Experience not found");
     }
 
-    // Find the index of the user's ID in the likes array of the experience.
     const index = experience.likes.indexOf(userId);
 
-    // If the user has not liked the experience before (index is -1), like it.
+    // console.log(`Index of user ID in likes array: ${index}`);
+
     if (index === -1) {
+      // If the user has not liked the experience before (index is -1), like it.
+
       // Add the user's ID to the likes array of the experience to indicate they liked it.
       await Experience.updateOne(
-        { _id: req.params.id },
+        { _id: experienceId },
         { $push: { likes: userId } }
       );
+
+      // console.log("User liked the experience");
 
       // Respond with a 200 status and the updated experience.
       return res.status(200).json(experience);
@@ -191,14 +200,17 @@ router.put("/likes/:id", authenticateUser, async (req, res) => {
 
       // Remove the user's ID from the likes array of the experience to indicate they unliked it.
       await Experience.updateOne(
-        { _id: req.params.id },
+        { _id: experienceId },
         { $pull: { likes: userId } }
       );
+
+      // console.log("User unliked the experience");
 
       // Respond with a 200 status and the updated experience.
       return res.status(200).json(experience);
     }
   } catch (error) {
+    // Handle any errors by returning a 500 status and an error message.
     res.status(500).json({ error: "Server Error!" });
   }
 });

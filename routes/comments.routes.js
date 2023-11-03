@@ -3,7 +3,8 @@ const Comment = require("../models/Comment.model");
 const { authenticateUser } = require("../middleware/authMiddleware.js");
 const router = express.Router();
 
-//get all comment of a certain product
+// Get all comment of a certain product
+// I did not implement the authenicateUser middleware because all people need to see withou login
 router.get("/:experienceId", async (req, res) => {
   try {
     // Find and retrieve comments associated with the specified experienceId.
@@ -13,9 +14,11 @@ router.get("/:experienceId", async (req, res) => {
     // Respond with a 200 status and the comments retrieved.
     res.status(200).json(comments);
   } catch (error) {
+    // Handle any errors by returning a 500 status and an error message.
     res.status(500).json({ error: "Server Error!" });
   }
 });
+
 // Creating a new comment
 // If user logged in, user can create comments
 router.post("/", authenticateUser, async (req, res) => {
@@ -29,6 +32,7 @@ router.post("/", authenticateUser, async (req, res) => {
     // Respond with a 200 status and the newly created comment.
     res.status(200).json(newComment);
   } catch (error) {
+    // Handle any errors by returning a 500 status and an error message.
     res.status(500).json({ error: "Server Error!" });
   }
 });
@@ -52,8 +56,11 @@ router.delete("/delete/:id", authenticateUser, async (req, res) => {
       res.status(403).json("You can delete only your own comments!");
     }
   } catch (error) {
+    // Handle any errors by returning a 500 status and an error message.
     res.status(500).json({ error: "Server Error!" });
   }
 });
+
+// I should make comment likes request
 
 module.exports = router;
