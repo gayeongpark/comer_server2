@@ -156,6 +156,7 @@ router.post(
       } = req.body;
 
       // Custom function to parse time in "h:mm A" format to a Date object
+      // This is to calculate the running time from startTime "5:30 AM", endTime "8:00 PM"
       // Take a single argument, timeStr, which is a time string in the "h:mm A" format
       const parseTime = (timeStr) => {
         // Split the timeStr into two parts, hours and minutes, by using the colon (":") as a delimiter
@@ -180,9 +181,11 @@ router.post(
       };
 
       // Calculate runningTime
+      // parseTime converts time strings in "h:mm A" format to JavaScript Date objects.
       const start = parseTime(startTime);
       const end = parseTime(endTime);
-      const runningTime = (end - start) / (60 * 1000); // in minutes
+      // Calculate the runningTime by subtracting the start time from the end time.
+      const runningTime = (end - start) / (60 * 1000); // Convert milliseconds into  minutes
 
       // Check if runningTime is less than or equal to 0, and return an error response if it is
       if (runningTime <= 0) {
@@ -202,7 +205,7 @@ router.post(
       // Save the experience document
       const savedExperience = await newExperience.save();
 
-      // Calculate availability data
+      // Calculate availability.dateMaxGuestPairs data
       const experienceId = savedExperience._id;
       const dateMaxGuestPairs = [];
 
@@ -242,28 +245,40 @@ router.post(
   }
 );
 
+// I made the update functionality each part because I want to make user update what they want only, insead of all together
+
 // update Image
 router.put(
   "/:id/updateImage",
-  authenticateUser,
-  upload.array("files", 5),
+  authenticateUser, // Authenticate the user before proceeding
+  upload.array("files", 5), // Upload up to 5 files using the "files" field
   async (req, res) => {
     try {
-      const { id } = req.params;
+      const { id } = req.params; // Extract the "id" parameter from the request's URL
+
+      // Find the experience with the provided ID in the database
       const experience = await Experience.findById(id);
 
+      // Check if the experience doesn't exist
       if (!experience) {
         return res.status(404).json("The experience cannot be found!");
       }
 
+      // Check if the currently authenticated user is the owner of the experience
+      // Because I did use put request using parameter to avoid potential cyber attacks
+      // Because some people who know about id information can adjust its data
       if (req.user.id !== experience.userId) {
         return res.status(401).json("You can only update your own experience!");
       }
 
       let imageUrls = [];
+      // Check if there are uploaded files in the request
       if (req?.files && req?.files?.length > 0) {
+        // Map the uploaded files to their URLs and replace backslashes with forward slashes
         imageUrls = req?.files?.map((file) => file.path.replace(/\\/g, "/"));
       }
+
+      // Update the experience in the database with the new image URLs finding by id
       await Experience.findByIdAndUpdate(
         id,
         { files: imageUrls },
@@ -271,11 +286,12 @@ router.put(
           new: true,
         }
       );
-
+      // Respond with a success message when the update is complete
       res.status(200).json({ message: "Experience updated successfully" });
     } catch (error) {
-      console.error(error); // Log the error for debugging
-      res.status(500).json("Failed to update the experience post!");
+      // console.error(error);
+      // Respond with an error message when an error occurs during the update
+      res.status(500).json({ error: "Failed to update the experience post!" });
     }
   }
 );
@@ -290,6 +306,8 @@ router.put("/:id/updateTitle", authenticateUser, async (req, res) => {
       return res.status(404).json("The experience cannot be found!");
     }
 
+    // Because I did use put request using parameter to avoid potential cyber attacks
+    // Because some people who know about id information can adjust its data
     if (req.user.id !== experience.userId) {
       return res.status(401).json("You can only update your own experience!");
     }
@@ -310,7 +328,7 @@ router.put("/:id/updateTitle", authenticateUser, async (req, res) => {
 
     res.status(200).json({ message: "Experience updated successfully" });
   } catch (error) {
-    console.error(error); // Log the error for debugging
+    // console.error(error);
     res.status(500).json("Failed to update the experience title.");
   }
 });
@@ -347,10 +365,10 @@ router.put("/:id/updateLanguage", authenticateUser, async (req, res) => {
 
     res.status(200).json({ message: "Experience updated successfully" });
   } catch (error) {
-    console.error(error); // Log the error for debugging
-    res
-      .status(500)
-      .json("Failed to update the language array of the experience.");
+    // console.error(error);
+    res.status(500).json({
+      error: "Failed to update the language array of the experience.",
+    });
   }
 });
 
@@ -361,18 +379,18 @@ router.put("/:id/updateDescription", authenticateUser, async (req, res) => {
     const experience = await Experience.findById(id);
 
     if (!experience) {
-      return res.status(404).json("The experience cannot be found!");
+      return res.status(404).json({ error: "The experience cannot be found!" });
     }
 
-    // Check for authorization if needed
-    // Add your authentication and authorization logic here
-
+    if (req.user.id !== experience.userId) {
+      return res.status(401).json("You can only update your own experience!");
+    }
     const { description } = req.body;
 
     if (description === undefined) {
       return res
         .status(400)
-        .json("Description is required in the request body.");
+        .json({ error: "Description is required in the request body." });
     }
 
     await Experience.findByIdAndUpdate(
@@ -385,8 +403,10 @@ router.put("/:id/updateDescription", authenticateUser, async (req, res) => {
 
     res.status(200).json({ message: "Experience updated successfully" });
   } catch (error) {
-    console.error(error); // Log the error for debugging
-    res.status(500).json("Failed to update the description of the experience.");
+    // console.error(error);
+    res
+      .status(500)
+      .json({ error: "Failed to update the description of the experience." });
   }
 });
 
