@@ -23,6 +23,7 @@ mongoose
     console.error("Error connecting to mongo: ", error);
   });
 
+  const cors = require('cors');
   const corsOptions = {
     origin: 'https://comer-experience-app.onrender.com', // this should match your client application's host
     credentials: true, // this allows the server to accept cookies via CORS
