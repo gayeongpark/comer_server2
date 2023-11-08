@@ -163,14 +163,14 @@ router.post("/login", verifyEmail, async (req, res) => {
       // Set cookies for the access and refresh tokens.
       res.cookie("accessToken", accessToken, {
         httpOnly: true,
-        secure: false,
+        secure: true,
         sameSite: "None",
         maxAge: 1800000,
       });
 
       res.cookie("refreshToken", refreshToken, {
         httpOnly: true,
-        secure: false,
+        secure: true,
         sameSite: "None",
         maxAge: 604800000,
       });
@@ -229,7 +229,7 @@ router.post("/refreshtoken", async (req, res) => {
     // Set the new access token as a cookie with HTTP-only and a maximum age
     res.cookie("accessToken", accessToken, {
       httpOnly: true,
-      secure: false,
+      secure: true,
       sameSite: "None",
       maxAge: 1800000, // Max age of 30 minutes
     });
