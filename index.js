@@ -31,13 +31,13 @@ app.use(
   })
 );
 
-const path = require("path");
-app.use(express.static(path.join(__dirname, ""))); // Serve static files (e.g., images, CSS) from the specified directory
+// const path = require("path");
+// app.use(express.static(path.join(__dirname, ""))); // Serve static files (e.g., images, CSS) from the specified directory
 
-const PORT = process.env.PORT || 8000; // Set the server's port based on an environment variable or use 8000 as a default
+const PORT = process.env.PORT; // Set the server's port based on an environment variable or use 8000 as a default
 
 app.listen(PORT, () => {
-  console.log(`Server listening on the port http://localhost:${PORT}`);
+  console.log(`Server listening on the port ${PORT}`);
   // Start the server and log a message to the console when it's listening
 });
 
