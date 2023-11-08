@@ -23,15 +23,16 @@ mongoose
     console.error("Error connecting to mongo: ", error);
   });
 
-  const cors = require('cors');
-  const corsOptions = {
-    origin: 'https://comer-experience-app.onrender.com', // this should match your client application's host
-    credentials: true, // this allows the server to accept cookies via CORS
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
-    allowedHeaders: 'Content-Type,Authorization'
-  };
-  
-  app.use(cors(corsOptions));
+const cors = require("cors");
+const corsOptions = {
+  origin: "https://comer-experience-app.onrender.com", // this should match your client application's host
+  credentials: true, // this allows the server to accept cookies via CORS
+  methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
+  allowedHeaders: "content-Type,Authorization",
+  exposedHeaders: ["Set-Cookie"],
+};
+
+app.use(cors(corsOptions));
 
 // const path = require("path");
 // app.use(express.static(path.join(__dirname, ""))); // Serve static files (e.g., images, CSS) from the specified directory

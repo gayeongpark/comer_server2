@@ -163,11 +163,15 @@ router.post("/login", verifyEmail, async (req, res) => {
       // Set cookies for the access and refresh tokens.
       res.cookie("accessToken", accessToken, {
         httpOnly: true,
+        secure: false,
+        sameSite: "None",
         maxAge: 1800000,
       });
 
       res.cookie("refreshToken", refreshToken, {
         httpOnly: true,
+        secure: false,
+        sameSite: "None",
         maxAge: 604800000,
       });
     }
