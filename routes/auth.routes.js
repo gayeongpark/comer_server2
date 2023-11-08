@@ -229,6 +229,8 @@ router.post("/refreshtoken", async (req, res) => {
     // Set the new access token as a cookie with HTTP-only and a maximum age
     res.cookie("accessToken", accessToken, {
       httpOnly: true,
+      secure: false,
+      sameSite: "None",
       maxAge: 1800000, // Max age of 30 minutes
     });
 
