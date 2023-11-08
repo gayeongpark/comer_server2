@@ -1,5 +1,7 @@
 const express = require("express");
+const { S3Client } = require("@aws-sdk/client-s3");
 const multer = require("multer");
+const multerS3 = require("multer-s3");
 const { authenticateUser } = require("../middleware/authMiddleware.js");
 const User = require("../models/User.model");
 const Experience = require("../models/Experience.model");
@@ -51,38 +53,59 @@ router.get("/comments/:id", async (req, res, next) => {
 //update user
 
 //1. Specifying where uploaded files should be stored and what name they should be given.
-const storage = multer.diskStorage({
-  destination: (req, file, callback) => {
-    // console.log('Destination:', file);
-    // Set the destination folder for uploaded files (profile images).
-    callback(null, "public/profileImages/");
-  },
-  filename: (req, file, callback) => {
-    // console.log('Filename:', file);
-    // Define the filename for the uploaded file, including the current timestamp and original filename.
-    callback(null, Date.now() + "-" + file.originalname);
-  },
-});
+// const storage = multer.diskStorage({
+//   destination: (req, file, callback) => {
+//     // console.log('Destination:', file);
+//     // Set the destination folder for uploaded files (profile images).
+//     callback(null, "public/profileImages/");
+//   },
+//   filename: (req, file, callback) => {
+//     // console.log('Filename:', file);
+//     // Define the filename for the uploaded file, including the current timestamp and original filename.
+//     callback(null, Date.now() + "-" + file.originalname);
+//   },
+// });
 
 //2. Created a Multer middleware that uses the storage engine and specifies that only image files should be accepted (PNG, JPG, JPEG)
 
-const upload = multer({
-  storage: storage,
-  fileFilter: (req, file, callback) => {
-    // console.log(req)
-    // console.log('File filter:', file);
-    if (
-      file.mimetype === "image/png" ||
-      file.mimetype === "image/jpg" ||
-      file.mimetype === "image/jpeg"
-    ) {
-      callback(null, true);
-      // Accpeting the file
-    } else {
-      callback(new Error("Only image files are allowed!"));
-    }
+// const upload = multer({
+//   storage: storage,
+//   fileFilter: (req, file, callback) => {
+//     // console.log(req)
+//     // console.log('File filter:', file);
+//     if (
+//       file.mimetype === "image/png" ||
+//       file.mimetype === "image/jpg" ||
+//       file.mimetype === "image/jpeg"
+//     ) {
+//       callback(null, true);
+//       // Accpeting the file
+//     } else {
+//       callback(new Error("Only image files are allowed!"));
+//     }
+//   },
+// });
+
+const s3Client = new S3Client({
+  region: "eu-north-1",
+  credentials: {
+    accessKeyId: process.env.AWS_S3_ACCESSKEY,
+    secretAccessKey: process.env.AWS_S3_SECRETKEY,
   },
 });
+
+// Define a Multer-S3 storage engine using the S3 client from AWS SDK v3.
+const storage = multerS3({
+  s3: s3Client,
+  bucket: "comer-images",
+  acl: "public-read",
+  key: function (req, file, cb) {
+    cb(null, `${Date.now().toString()}-${file.originalname}`);
+  },
+});
+
+// Create the Multer middleware for handling file uploads.
+const upload = multer({ storage });
 
 //3. If a file was uploaded, it will set the profilePicture field in the request body to the path of the uploaded file. The path of the uploaded file will be available in req.file.path.
 router.put(
@@ -100,7 +123,7 @@ router.put(
       // console.log(req.file);
 
       // Extract and sanitize the image URL by replacing backslashes with forward slashes for cross-platform compatibility.
-      let imageUrl = req.file?.path?.replace(/\\/g, "/");
+      let imageUrl = req.file?.location;
       // Update the user's information, including the profile picture, and return the updated user.
       const updatedUser = await User.findByIdAndUpdate(
         req.user.id,

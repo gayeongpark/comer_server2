@@ -3,7 +3,9 @@ const Experience = require("../models/Experience.model");
 const User = require("../models/User.model.js");
 const Availability = require("../models/Availability.model");
 const { authenticateUser } = require("../middleware/authMiddleware.js");
+const { S3Client } = require("@aws-sdk/client-s3");
 const multer = require("multer");
+const multerS3 = require("multer-s3");
 // const stripe = require("stripe")(process.env.SECRET_STRIPE_KEY);
 // I will use stripe to payment
 const router = express.Router();
@@ -98,35 +100,56 @@ router.get("/", async (req, res) => {
 // Create a new post
 
 // 1. Defined a storage engine for Multer that specifies where uploaded files should be stored and what name they should be given.
-const storage = multer.diskStorage({
-  destination: (req, file, callback) => {
-    // console.log('Destination:', file);
-    callback(null, "public/experienceImages/");
-  },
-  filename: (req, file, callback) => {
-    // console.log('Filename:', file);
-    callback(null, Date.now() + "-" + file.originalname);
+// const storage = multer.diskStorage({
+//   destination: (req, file, callback) => {
+//     // console.log('Destination:', file);
+//     callback(null, "public/experienceImages/");
+//   },
+//   filename: (req, file, callback) => {
+//     // console.log('Filename:', file);
+//     callback(null, Date.now() + "-" + file.originalname);
+//   },
+// });
+
+//2. Created a Multer middleware that uses the storage engine and specifies that only image files should be accepted:
+// const upload = multer({
+//   storage: storage,
+//   fileFilter: (req, file, callback) => {
+//     // console.log(req)
+//     // console.log('File filter:', file);
+//     // I am accpeting only png, jpg and jpeg.
+//     if (
+//       file.mimetype === "image/png" ||
+//       file.mimetype === "image/jpg" ||
+//       file.mimetype === "image/jpeg"
+//     ) {
+//       callback(null, true);
+//     } else {
+//       callback(new Error("Only image files are allowed!"));
+//     }
+//   },
+// });
+
+const s3Client = new S3Client({
+  region: "eu-north-1",
+  credentials: {
+    accessKeyId: process.env.AWS_S3_ACCESSKEY,
+    secretAccessKey: process.env.AWS_S3_SECRETKEY,
   },
 });
 
-//2. Created a Multer middleware that uses the storage engine and specifies that only image files should be accepted:
-const upload = multer({
-  storage: storage,
-  fileFilter: (req, file, callback) => {
-    // console.log(req)
-    // console.log('File filter:', file);
-    // I am accpeting only png, jpg and jpeg.
-    if (
-      file.mimetype === "image/png" ||
-      file.mimetype === "image/jpg" ||
-      file.mimetype === "image/jpeg"
-    ) {
-      callback(null, true);
-    } else {
-      callback(new Error("Only image files are allowed!"));
-    }
+// Define a Multer-S3 storage engine using the S3 client from AWS SDK v3.
+const storage = multerS3({
+  s3: s3Client,
+  bucket: "comer-images",
+  acl: "public-read",
+  key: function (req, file, cb) {
+    cb(null, `${Date.now().toString()}-${file.originalname}`);
   },
 });
+
+// Create the Multer middleware for handling file uploads.
+const upload = multer({ storage });
 
 //3. If files were uploaded, it will set the profilePicture field in the request body to the path of the uploaded file. The path of the uploaded file will be available in req.files.path.
 router.post(
@@ -141,7 +164,7 @@ router.post(
       if (req?.files && req?.files?.length > 0) {
         // Map the uploaded file paths and replace backslashes with forward slashes
         // Because If do not replace the backslashes, the image url path is not great and cannot display correctly
-        imageUrls = req.files.map((file) => file.path.replace(/\\/g, "/"));
+        imageUrls = req.files.map((file) => file.location);
       }
 
       // Destructure the following properties from the request body because I need additional process to save the data correctly
@@ -275,8 +298,9 @@ router.put(
       // Check if there are uploaded files in the request
       if (req?.files && req?.files?.length > 0) {
         // Map the uploaded files to their URLs and replace backslashes with forward slashes
-        imageUrls = req?.files?.map((file) => file.path.replace(/\\/g, "/"));
+        imageUrls = req?.files?.map((file) => file.location);
       }
+      console.log(req.file);
 
       // Update the experience in the database with the new image URLs finding by id
       await Experience.findByIdAndUpdate(
