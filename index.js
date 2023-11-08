@@ -27,7 +27,7 @@ const cors = require("cors");
 app.use(
   cors({
     credentials: true, // Allow credentials (cookies)
-    origin: ["http://localhost:3000", "https://comer-experience-app.onrender.com"], // Define the allowed origin for CORS
+    origin: ["https://comer-experience-app.onrender.com"], // Define the allowed origin for CORS
   })
 );
 
