@@ -34,12 +34,12 @@ app.use(
 // const path = require("path");
 // app.use(express.static(path.join(__dirname, ""))); // Serve static files (e.g., images, CSS) from the specified directory
 
-const PORT = process.env.PORT; // Set the server's port based on an environment variable or use 8000 as a default
+// const PORT = process.env.PORT; // Set the server's port based on an environment variable or use 8000 as a default
 
-app.listen(PORT, () => {
-  console.log(`Server listening on the port ${PORT}`);
-  // Start the server and log a message to the console when it's listening
-});
+// app.listen(PORT, () => {
+//   console.log(`Server listening on the port ${PORT}`);
+//   // Start the server and log a message to the console when it's listening
+// });
 
 const usersRoutes = require("./routes/users.routes");
 app.use("/users", usersRoutes); // Use the "users" routes for URLs starting with "/users"
