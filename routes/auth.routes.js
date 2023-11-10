@@ -86,30 +86,22 @@ router.post("/signup", async (req, res) => {
   }
 });
 
-router.get("/verifyEmail/:token", async (req, res, next) => {
+router.get("/verifyEmail/:token", async (req, res) => {
   try {
     const emailToken = req.params.token;
-    // Extract the email verification token from the request's parameters from front-end(dynamic routing)
-
     const user = await User.findOneAndUpdate(
-      // Attempt to find a user with the given emailToken and update their verification status
-      { emailToken: emailToken }, // Search for a user with the provided emailToken
+      { emailToken: emailToken },
       { isVerified: true, isActive: true, emailToken: null },
-      // The reason I need to update the emailToken to null is to ensure that the token can only be used once for email verification. Once a user's email has been verified, the emailToken should no longer be valid or usable.
-      // By setting the emailToken to null, I am essentially deleting the token and preventing any further use of that specific token for email verification.
-      // This ensures that a user's email can only be verified once, and helps to prevent potential security issues that could arise if an email verification token were to remain valid after a user's email had already been verified.
-      { new: true } // Return the updated user document
+      { new: true }
     );
     // console.log(user);
-    // If a user with the emailToken is found and updated successfully
     if (user) {
-      res.status(200).json("Your email is verified!");
+      res.status(200).json({message: "Your email is verified!"});
     } else {
-      res.status(404).json("User not found!");
+      res.status(404).json({error: "User not found!"});
     }
   } catch (error) {
-    // Handle any errors by returning a 500 status and an error message.
-    res.status(500).json({ error: "Server Error!" });
+    res.status(500).json({error: "Server Error!"});
   }
 });
 
