@@ -37,14 +37,14 @@ app.use(cors(corsOptions));
 // const path = require("path");
 // app.use(express.static(path.join(__dirname, ""))); // Serve static files (e.g., images, CSS) from the specified directory
 
- // Serve static files from the React app
-app.use(express.static(path.join(__dirname, 'build')));
+//  // Serve static files from the React app
+// app.use(express.static(path.join(__dirname, 'build')));
 
-// The "catchall" handler: for any request that doesn't
-// match one above, send back React's index.html file.
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'build', 'index.html'));
-});
+// // The "catchall" handler: for any request that doesn't
+// // match one above, send back React's index.html file.
+// app.get('*', (req, res) => {
+//   res.sendFile(path.join(__dirname, 'build', 'index.html'));
+// });
 
 const usersRoutes = require("./routes/users.routes");
 app.use("/users", usersRoutes); // Use the "users" routes for URLs starting with "/users"
