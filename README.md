@@ -1,7 +1,8 @@
-
 # Server Configuration for Lantana's Project
 
 This document outlines the server configuration for Lantana (GaYeong)'s project.
+
+**Deployed URL**: [Comer Experience Server](https://comer-experience-app-server.onrender.com)
 
 ## Overview
 
