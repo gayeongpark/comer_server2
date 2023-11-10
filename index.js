@@ -37,11 +37,13 @@ app.use(cors(corsOptions));
 // const path = require("path");
 // app.use(express.static(path.join(__dirname, ""))); // Serve static files (e.g., images, CSS) from the specified directory
 
-const PORT = process.env.PORT || 8000; // Set the server's port based on an environment variable or use 8000 as a default
+ // Serve static files from the React app
+app.use(express.static(path.join(__dirname, 'build')));
 
-app.listen(PORT, () => {
-  console.log(`Server listening on the port ${PORT}`);
-  // Start the server and log a message to the console when it's listening
+// The "catchall" handler: for any request that doesn't
+// match one above, send back React's index.html file.
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'build', 'index.html'));
 });
 
 const usersRoutes = require("./routes/users.routes");
@@ -55,3 +57,10 @@ app.use("/experiences", experiencesRoutes); // Use the "experiences" routes for 
 
 const commentsRoutes = require("./routes/comments.routes");
 app.use("/comments", commentsRoutes); // Use the "comments" routes for URLs starting with "/comments"
+
+const PORT = process.env.PORT || 8000; // Set the server's port based on an environment variable or use 8000 as a default
+
+app.listen(PORT, () => {
+  console.log(`Server listening on the port ${PORT}`);
+  // Start the server and log a message to the console when it's listening
+});
