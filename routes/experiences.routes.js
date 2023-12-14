@@ -82,7 +82,7 @@ router.get("/", async (req, res) => {
       {
         // First aggregation stage: Match experiences that meet specific criteria
         $match: {
-          startDate: { $gte: new Date() }, // Start date is greater than or equal to today
+          // startDate: { $gte: new Date() }, // Start date is greater than or equal to today
           endDate: { $gte: new Date() }, // End date is greater than or equal to today
         },
       },
