@@ -1,4 +1,4 @@
-# Server Configuration for Lantana's Project
+# Server Configuration for `Comer` project
 
 This document outlines the server configuration for Lantana (GaYeong)'s project.
 
@@ -45,6 +45,4 @@ Run the server in development mode:
 npm run start
 ```
 
-## Additional Information
 
-This server setup is part of a larger project that aims to provide robust backend functionality. It incorporates various technologies and libraries to ensure a seamless and secure user experience.
