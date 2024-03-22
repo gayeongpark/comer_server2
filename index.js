@@ -3,6 +3,11 @@ const express = require("express");
 const app = express();
 app.use(express.json()); // Use the JSON middleware to parse JSON data in requests
 
+const helmet = require("helmet");
+app.disable("x-powered-by");
+app.use(helmet({ xPoweredBy: false }));
+// It is to hind the fact that this website is developed by express.js
+
 const cookieParser = require("cookie-parser");
 app.use(cookieParser()); // Use the cookie-parser middleware to handle cookies
 
@@ -10,6 +15,7 @@ const dotenv = require("dotenv");
 dotenv.config(); // Load environment variables from a .env file
 
 const mongoose = require("mongoose");
+// mongoose automatically sanitize inputs to prevent injection
 const MONGO_URI = process.env.MONGODB;
 // Connect to MongoDB using the provided URI from .env file and configure some settings
 mongoose

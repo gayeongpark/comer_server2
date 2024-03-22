@@ -1,7 +1,7 @@
 const { Schema, model } = require('mongoose');
 
 // TODO: Please make sure you edit the User model to whatever makes sense in this case
-// I do not use this data shema no logner
+// I do not use this schema
 const resetSchema = new Schema({
   email: {
     type: String,

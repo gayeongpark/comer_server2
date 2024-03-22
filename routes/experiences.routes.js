@@ -3,6 +3,7 @@ const Experience = require("../models/Experience.model");
 const User = require("../models/User.model.js");
 const Availability = require("../models/Availability.model");
 const { authenticateUser } = require("../middleware/authMiddleware.js");
+const { body, validationResult } = require("express-validator");
 const { S3Client } = require("@aws-sdk/client-s3");
 const multer = require("multer");
 const multerS3 = require("multer-s3");
@@ -117,7 +118,7 @@ router.get("/", async (req, res) => {
 //   fileFilter: (req, file, callback) => {
 //     // console.log(req)
 //     // console.log('File filter:', file);
-//     // I am accpeting only png, jpg and jpeg.
+//     // I am accepting only png, jpg and jpeg.
 //     if (
 //       file.mimetype === "image/png" ||
 //       file.mimetype === "image/jpg" ||
@@ -156,8 +157,22 @@ router.post(
   "/createExperience",
   authenticateUser, // Middleware to authenticate the user
   upload.array("files", 5), // Middleware for handling file uploads (up to 5 files)
+  [
+    // Validate the input form
+    body("title").not().isEmpty().withMessage("Title is required"),
+    body("description").not().isEmpty().withMessage("Description is required"),
+    body("price").isFloat({ min: 0 }).withMessage("Invalid price"),
+    body("currency").not().isEmpty().withMessage("Currency is required"),
+    body("country").not().isEmpty().withMessage("Country is required"),
+    body("city").not().isEmpty().withMessage("City is required"),
+    body("address").not().isEmpty().withMessage("Address is required"),
+    body("tags").isArray().withMessage("Tags must be an array"),
+  ],
   async (req, res) => {
-    // Asynchronous route handler
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
     try {
       let imageUrls = []; // Initialize an array to store image URLs
       // If there is req.files(for images)
@@ -268,8 +283,7 @@ router.post(
   }
 );
 
-// I made the update functionality each part because I want to make user update what they want only, insead of all together
-
+// I made the update functionality each part because I want to make user update what they want only, instead of all together
 // update Image
 router.put(
   "/:id/updateImage",
@@ -727,8 +741,8 @@ router.put("/:id/updatePriceCurrency", authenticateUser, async (req, res) => {
   }
 });
 
-// Update availiability
-router.put("/:id/updateAvailiability", authenticateUser, async (req, res) => {
+// Update availability
+router.put("/:id/updateAvailability", authenticateUser, async (req, res) => {
   try {
     const { id } = req.params;
     const experience = await Experience.findById(id);
@@ -841,7 +855,7 @@ router.delete("/deleteAExperience/:id", authenticateUser, async (req, res) => {
       experienceId: experience.id,
     });
     if (!availability) {
-      res.status(404).json("I cannot find the availiable slot!");
+      res.status(404).json("I cannot find the available slot!");
     }
   } catch (error) {
     res.status(500).json("Failed to delete the experience post!");
@@ -1039,7 +1053,7 @@ router.delete(
 
 // Search
 // It must be revised
-// I did not implet search request to the client
+// I did not implement search request to the client yet
 // It should be revised much more
 router.get("/search", async (req, res, next) => {
   try {

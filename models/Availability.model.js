@@ -2,7 +2,6 @@
 const { Schema, model } = require("mongoose");
 
 // Create a new Mongoose Schema for the "Availability" collection in the database
-// This data structure is what I am struggle with. I am considering to change this datasture
 // I hope I can come up with a great way to store the booking slot efficiently
 const availabilitySchema = new Schema(
   {

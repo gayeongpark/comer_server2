@@ -15,10 +15,35 @@ const router = express.Router();
 router.post("/signup", async (req, res) => {
   try {
     const { email, password, password2 } = req.body;
-    // 1. hash the password and password2(for confirming password) to store them securely in a database.
+
+    // Basic validation
+    if (!email || !password || !password2) {
+      return res.status(400).json({ error: "All fields are required" });
+    }
+
+    // Validate email format
+    if (!/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/.test(email)) {
+      return res.status(400).json({ error: "Invalid email format" });
+    }
+
+    // Validate password length
+    if (password.length < 8 && password.length > 124) {
+      return res
+        .status(400)
+        .json({ error: "Password must be at least 8 characters long" });
+    }
+
+    // Validate password2 length
+    if (password2.length < 8 && password2.length > 124) {
+      return res
+        .status(400)
+        .json({ error: "Password must be at least 8 characters long" });
+    }
+
+    // hash the password and password2(for confirming password) to store them securely in a database.
     const salt = bcrypt.genSaltSync(10);
     // salt contains a random string that is combined with the user's password before hashing.
-    // It is to add an addtional layer of security to the password hashing process.
+    // It is to add an additional layer of security to the password hashing process.
     // 10 means that bcrypt will perform 2^10 (1,024) iterations of the underlying algorithm to generate the salt.
     const hash = bcrypt.hashSync(req.body.password, salt);
     // hash contains a hashed password from req.body.password, which is the user's entered password, and a random string from previous step.
@@ -28,15 +53,16 @@ router.post("/signup", async (req, res) => {
       // If password and password2 are not same, it will be error!
       return res.status(400).json({ error: "Password does not match" });
     }
+
     const user = await User.findOne({ email });
-    // Attempt to find if there is same email value in the User data model using the email, wich is the user's entered email.
+    // Attempt to find if there is same email value in the User data model using the email, which is the user's entered email.
     if (user) {
       // check user existence.
       return res.status(404).json({ error: "User already registered." });
     }
     const token = crypto.randomBytes(32).toString("hex");
     // A token is generated for email verification.
-    // It will create a verification URL
+    // Create a verification URL
 
     const newUser = new User({
       email: req.body.email,
@@ -96,12 +122,12 @@ router.get("/verifyEmail/:token", async (req, res) => {
     );
     // console.log(user);
     if (user) {
-      res.status(200).json({message: "Your email is verified!"});
+      res.status(200).json({ message: "Your email is verified!" });
     } else {
-      res.status(404).json({error: "User not found!"});
+      res.status(404).json({ error: "User not found!" });
     }
   } catch (error) {
-    res.status(500).json({error: "Server Error!"});
+    res.status(500).json({ error: "Server Error!" });
   }
 });
 
@@ -110,6 +136,23 @@ router.post("/login", verifyEmail, async (req, res) => {
   try {
     // Extract the email and password from the request body.
     const { email, password } = req.body;
+
+    // Basic validation
+    if (!email || !password) {
+      return res.status(400).json({ error: "All fields are required" });
+    }
+
+    // Validate email format
+    if (!/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/.test(email)) {
+      return res.status(400).json({ error: "Invalid email format" });
+    }
+
+    // Validate password length
+    if (password.length < 8 && password.length > 124) {
+      return res
+        .status(400)
+        .json({ error: "Password must be at least 8 characters long" });
+    }
 
     // Attempt to find a user with the provided email in the database.
     const user = await User.findOne({ email });
@@ -242,7 +285,7 @@ router.post("/logout", async (req, res) => {
     res.clearCookie("refreshToken");
 
     // Respond with a 200 status code and a message to indicate successful logout.
-    res.status(200).json("Completely logout");
+    res.status(200).json({ message: "Completely logout" });
   } catch (error) {
     res.status(500).json({ error: "Server Error!" });
   }
@@ -255,14 +298,16 @@ router.post("/forgotPassword", async (req, res) => {
     const { email } = req.body;
     // Generate a random token using crypto for password reset.
     const token = crypto.randomBytes(32).toString("hex");
+    // const expirationTime = Date.now() + 60000;
     // Check if a user with the provided email exists in the database and contains the data in user variable.
     const user = await User.findOne({ email });
     // If no user is found with the provided email, return a 400 response.
     if (!user) {
-      return res.status(400).json("You are not the joined member!");
+      return res.status(400).json({ error: "You are not the joined member!" });
     } else {
       // Assign the generated token to the user's resetPasswordEmailToken field and save it.
       user.resetPasswordEmailToken = token;
+      // user.resetPasswordExpires = expirationTime;
       await user.save();
       // Send the password reset email
     }
@@ -300,17 +345,31 @@ router.post("/resetPassword", async (req, res) => {
     const { token, password, password2 } = req.body;
     // Check if the two provided passwords match; if not, return a 400 response.
     if (password !== password2) {
-      return res.status(400).json("Password does not match");
+      return res.status(400).json({ error: "Password does not match" });
     }
     // Find a user with the provided resetPasswordEmailToken.
-    const user = await User.findOne({ resetPasswordEmailToken: token });
+    const user = await User.findOne({
+      resetPasswordEmailToken: token,
+      // resetPasswordExpires: { $gt: Date.now() },
+    });
     if (!user) {
-      return res.status(400).json("Invalid link");
+      return res.status(400).json({ error: "Invalid link" });
+    }
+
+    // Check if the new password is the same as the old password
+    const isSamePreviousPassword = await bcrypt.compare(
+      password,
+      user.password
+    );
+    if (isSamePreviousPassword) {
+      return res.status(400).json({
+        error: "New password must be different from the current password.",
+      });
     }
     // Generate salt and hash the new password using bcrypt for security.
     const salt = bcrypt.genSaltSync(10);
     const hash = bcrypt.hashSync(password, salt);
-    const hash2 = bcrypt.hashSync(req.body.password2, salt);
+    // const hash2 = bcrypt.hashSync(req.body.password2, salt);
     // Update the user's password and clear the resetPasswordEmailToken.
     await User.updateOne(
       { email: user.email },
@@ -318,10 +377,11 @@ router.post("/resetPassword", async (req, res) => {
         password: hash,
         // password2: hash2,
         resetPasswordEmailToken: null,
+        // resetPasswordExpires: null,
       }
     );
     // Respond with a 202 status indicating successful password update.
-    res.status(202).json("Password updated successfully!");
+    res.status(200).json({ message: "Password updated successfully!" });
   } catch (error) {
     // Handle any errors by returning a 500 status and an error message.
     res.status(500).json({ error: "Server Error!" });

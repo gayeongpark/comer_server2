@@ -7,6 +7,8 @@ const User = require("../models/User.model");
 const Experience = require("../models/Experience.model");
 const router = express.Router();
 
+// This is for handling user information
+
 //get user
 router.get("/:id", authenticateUser, async (req, res) => {
   try {
@@ -79,7 +81,7 @@ router.get("/comments/:id", async (req, res, next) => {
 //       file.mimetype === "image/jpeg"
 //     ) {
 //       callback(null, true);
-//       // Accpeting the file
+//       // Accepting the file
 //     } else {
 //       callback(new Error("Only image files are allowed!"));
 //     }
