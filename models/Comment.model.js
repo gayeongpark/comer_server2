@@ -21,15 +21,15 @@ const commentSchema = new Schema(
       required: true, // This field is required, meaning a comment must have text
     },
 
-    // Define the "likes" field to store user IDs who liked the comment
-    likes: {
-      type: [String], // An array of strings to store user IDs
-    },
+    // // Define the "likes" field to store user IDs who liked the comment
+    // likes: {
+    //   type: [String], // An array of strings to store user IDs
+    // },
 
-    // Define the "dislikes" field to store user IDs who disliked the comment
-    dislikes: {
-      type: [String], // An array of strings to store user IDs
-    },
+    // // Define the "dislikes" field to store user IDs who disliked the comment
+    // dislikes: {
+    //   type: [String], // An array of strings to store user IDs
+    // },
   },
   // Include timestamps for "createdAt" and "updatedAt" fields
   { timestamps: true }

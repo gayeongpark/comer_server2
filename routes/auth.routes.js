@@ -22,7 +22,7 @@ router.post("/signup", async (req, res) => {
     // 10 means that bcrypt will perform 2^10 (1,024) iterations of the underlying algorithm to generate the salt.
     const hash = bcrypt.hashSync(req.body.password, salt);
     // hash contains a hashed password from req.body.password, which is the user's entered password, and a random string from previous step.
-    const hash2 = bcrypt.hashSync(req.body.password2, salt);
+    // const hash2 = bcrypt.hashSync(req.body.password2, salt);
     // hash2 contains a hashed password from req.body.password2, which is the user's entered password, and a random string from previous step.
     if (password !== password2) {
       // If password and password2 are not same, it will be error!
@@ -41,7 +41,7 @@ router.post("/signup", async (req, res) => {
     const newUser = new User({
       email: req.body.email,
       password: hash,
-      password2: hash2,
+      // password2: hash2,
       emailToken: token,
       isVerified: false,
       isActive: false,
@@ -316,7 +316,7 @@ router.post("/resetPassword", async (req, res) => {
       { email: user.email },
       {
         password: hash,
-        password2: hash2,
+        // password2: hash2,
         resetPasswordEmailToken: null,
       }
     );
