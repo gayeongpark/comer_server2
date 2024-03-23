@@ -19,7 +19,7 @@ const authenticateUser = async (req, res, next) => {
     // Find the user based on the payload's ID
     const user = await User.findById(payload.id);
     if (!user || (!user.isVerified && !user.isActive)) {
-      // If the user does not exist or user's email is not verified or not acive state, return a 401 Unauthorized response
+      // If the user does not exist or user's email is not verified or not active state, return a 401 Unauthorized response
       return res.status(401).json("Unauthorized!");
     }
     // Attach the user object to the req object for use in subsequent middleware and routes

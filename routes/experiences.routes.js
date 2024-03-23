@@ -1061,17 +1061,22 @@ router.delete(
 // It must be revised
 // I did not implement search request to the client yet
 // It should be revised much more
-router.get("/search", async (req, res, next) => {
+router.get("/searchExperience/:city", async (req, res) => {
   try {
-    const { city, startDate, endDate } = req.query;
-    const experience = await Experience.find({
+    const { city } = req.params; // From URL path
+    const { startDate, endDate } = req.query; // From query string
+    const experiences = await Experience.find({
       city: { $regex: city, $options: "i" },
-      startDate: { $gte: startDate },
-      endDate: { $lte: endDate },
+      startDate: { $gte: new Date(startDate) },
+      endDate: { $lte: new Date(endDate) },
     }).limit(40);
-    res.status(200).json(experience);
+    res.status(200).json(experiences);
   } catch (error) {
-    next(error);
+    return res
+      .status(500)
+      .json({
+        message: "We could not find experiences based on your request.",
+      });
   }
 });
 
