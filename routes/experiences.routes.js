@@ -17,18 +17,14 @@ router.get("/:id", async (req, res) => {
     // Extract the "id" parameter from the URL
     // It is same id = req.params.id || { id } = req.params
     const { id } = req.params;
-    const today = new Date();
+    // const today = new Date();
     const experience = await Experience.findById(id);
     // If no experience is found, return a 404 Not Found response
     if (!experience) {
       return res.status(404).json({ error: "Experience not founded" });
     }
     // Query the database to find availability records related to the experience
-    const availability = await Availability.aggregate([
-      { $match: { experienceId: id } },
-      { $unwind: "$dateMaxGuestPairs" },
-      { $match: { "dateMaxGuestPairs.date": { $gte: today } } },
-    ]);
+    const availability = await Availability.find({ experienceId: id });
     // If no availability records are found, return a 404 Not Found response
     if (!availability) {
       return res
