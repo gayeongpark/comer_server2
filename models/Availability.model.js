@@ -8,6 +8,7 @@ const availabilitySchema = new Schema(
     // Define the "experienceId" field to associate the availability with an experience
     experienceId: {
       type: String,
+      index: true,
     },
 
     // Define the "dateMaxGuestPairs" field as an array of objects
@@ -17,6 +18,7 @@ const availabilitySchema = new Schema(
         date: {
           type: Date,
           required: true, // The date is required
+          index: true,
         },
         startTime: {
           type: String,
