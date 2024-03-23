@@ -24,10 +24,11 @@ router.get("/:id", async (req, res) => {
       return res.status(404).json({ error: "Experience not founded" });
     }
     // Query the database to find availability records related to the experience
-    const availability = await Availability.find({
-      experienceId: id,
-      "dateMaxGuestPairs.date": { $gte: today },
-    });
+    const availability = await Availability.aggregate([
+      { $match: { experienceId: id } },
+      { $unwind: "$dateMaxGuestPairs" },
+      { $match: { "dateMaxGuestPairs.date": { $gte: today } } },
+    ]);
     // If no availability records are found, return a 404 Not Found response
     if (!availability) {
       return res
