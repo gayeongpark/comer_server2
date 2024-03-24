@@ -1041,18 +1041,45 @@ router.delete(
 // It must be revised
 // I did not implet search request to the client
 // It should be revised much more
-router.get("/search", async (req, res, next) => {
+router.get("/searchExperience/:cityName", async (req, res) => {
   try {
-    const { city, startDate, endDate } = req.query;
-    const experience = await Experience.find({
-      city: { $regex: city, $options: "i" },
-      startDate: { $gte: startDate },
-      endDate: { $lte: endDate },
-    }).limit(40);
-    res.status(200).json(experience);
+    const { cityName } = req.params;
+    // let query = {
+    //   city: { $regex: city, $options: "i" }, // Case-insensitive search for the city
+    // };
+
+    // Extract and validate startDate and endDate from query string
+    // const { startDate, endDate } = req.query;
+    // if (startDate || endDate) {
+    //   if (startDate && isNaN(Date.parse(startDate))) {
+    //     throw new Error("Invalid startDate");
+    //   }
+    //   if (endDate && isNaN(Date.parse(endDate))) {
+    //     throw new Error("Invalid endDate");
+    //   }
+
+    //   // If both dates are valid or present, adjust the query accordingly
+    //   if (startDate) {
+    //     query.startDate = { $gte: new Date(startDate) };
+    //   }
+    //   if (endDate) {
+    //     query.endDate = { $lte: new Date(endDate) };
+    //   }
+    // }
+
+    const experiences = await Experience.find({ city: cityName }).limit(40);
+    res.status(200).json(experiences);
   } catch (error) {
-    next(error);
+    // console.error(error); // Log the error for server-side inspection
+    // const errorMessage = error.message.includes("Invalid")
+    //   ? error.message
+    //   : "We could not find experiences based on your request. Please check your inputs and try again.";
+    res.status(500).json({
+      message:
+        "We could not find experiences based on your request. Please check your inputs and try again.",
+    });
   }
 });
+
 
 module.exports = router;
