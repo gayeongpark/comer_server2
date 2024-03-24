@@ -5,7 +5,7 @@ const { authenticateUser } = require("../middleware/authMiddleware.js");
 const router = express.Router();
 
 // Get all comment of a certain product
-// I did not implement the authenticate User middleware because all people need to see without login
+// I did not implement the authenticate User middleware because all people need to see withou login
 router.get("/:experienceId", async (req, res) => {
   try {
     // Find and retrieve comments associated with the specified experienceId.

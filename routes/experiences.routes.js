@@ -283,7 +283,8 @@ router.post(
   }
 );
 
-// I made the update functionality each part because I want to make user update what they want only, instead of all together
+// I made the update functionality each part because I want to make user update what they want only, insead of all together
+
 // update Image
 router.put(
   "/:id/updateImage",
@@ -1059,7 +1060,7 @@ router.delete(
 
 // Search
 // It must be revised
-// I did not implement search request to the client yet
+// I did not implet search request to the client
 // It should be revised much more
 router.get("/searchExperience/:cityName", async (req, res) => {
   try {
@@ -1100,5 +1101,6 @@ router.get("/searchExperience/:cityName", async (req, res) => {
     });
   }
 });
+
 
 module.exports = router;

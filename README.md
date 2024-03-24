@@ -1,6 +1,6 @@
 # Server Configuration for `Comer` project
 
-This document outlines the server configuration for Lantana (GaYeong)'s project.
+This document outlines the server configuration for Lantana's project.
 
 **Deployed URL**: [Comer Experience Server](https://comer-experience-app-server.onrender.com)
 
@@ -9,7 +9,7 @@ This document outlines the server configuration for Lantana (GaYeong)'s project.
 - **Name**: server
 - **Version**: 1.0.0
 - **Main Entry**: index.js
-- **Author**: Lantana (GaYeong)
+- **Author**: Lantana
 - **License**: ISC
 
 ## Scripts
@@ -42,7 +42,6 @@ npm install
 Run the server in development mode:
 
 ```bash
-npm run start
+npx nodemon index.js
 ```
-
-
+# comer_server2

@@ -84,7 +84,7 @@ router.post("/signup", async (req, res) => {
       },
     });
 
-    const url = `https://comer-experience-app.onrender.com/emailVerification/${token}`;
+    const url = `https://comer-app.onrender.com/emailVerification/${token}`;
     // This is the URL for email verification with the generated token from previous step
     try {
       await transporter.sendMail({
@@ -321,7 +321,7 @@ router.post("/forgotPassword", async (req, res) => {
     });
 
     // Define the reset password URL to be sent in the email and contain the url in url variable.
-    const url = `https://comer-experience-app.onrender.com/resetPassword/${token}`;
+    const url = `https://comer-app.onrender.com/resetPassword/${token}`;
     await transporter.sendMail({
       from: `"Comer Team" <${process.env.NODEMAILER_ID}>`,
       to: email,
