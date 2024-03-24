@@ -4,7 +4,7 @@ const { authenticateUser } = require("../middleware/authMiddleware.js");
 const router = express.Router();
 
 // Get all comment of a certain product
-// I did not implement the authenicateUser middleware because all people need to see withou login
+// I did not implement the authenticate User middleware because all people need to see withou login
 router.get("/:experienceId", async (req, res) => {
   try {
     // Find and retrieve comments associated with the specified experienceId.
@@ -38,7 +38,7 @@ router.post("/", authenticateUser, async (req, res) => {
 });
 
 // Deleting a comment
-// Using the authenticateUser for deleting commennt only when user is logged in.
+// Using the authenticateUser for deleting comment only when user is logged in.
 router.delete("/delete/:id", authenticateUser, async (req, res) => {
   try {
     // Find the comment with the specified ID.

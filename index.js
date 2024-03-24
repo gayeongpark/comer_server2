@@ -25,7 +25,9 @@ mongoose
 
 const cors = require("cors");
 const corsOptions = {
-  origin: "https://comer-app.onrender.com", // this should match your client application's host
+  origin: 
+  // "http://localhost:3000",
+  "https://comer-app.onrender.com", // this should match your client application's host
   credentials: true, // this allows the server to accept cookies via CORS
   methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
   allowedHeaders: "content-Type,Authorization",

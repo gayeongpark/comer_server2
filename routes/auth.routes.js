@@ -18,7 +18,7 @@ router.post("/signup", async (req, res) => {
     // 1. hash the password and password2(for confirming password) to store them securely in a database.
     const salt = bcrypt.genSaltSync(10);
     // salt contains a random string that is combined with the user's password before hashing.
-    // It is to add an addtional layer of security to the password hashing process.
+    // It is to add an additional layer of security to the password hashing process.
     // 10 means that bcrypt will perform 2^10 (1,024) iterations of the underlying algorithm to generate the salt.
     const hash = bcrypt.hashSync(req.body.password, salt);
     // hash contains a hashed password from req.body.password, which is the user's entered password, and a random string from previous step.
@@ -58,7 +58,7 @@ router.post("/signup", async (req, res) => {
       },
     });
 
-    const url = `https://comer-experience-app.onrender.com/emailVerification/${token}`;
+    const url = `https://comer-app.onrender.com/emailVerification/${token}`;
     // This is the URL for email verification with the generated token from previous step
     try {
       await transporter.sendMail({
@@ -96,12 +96,12 @@ router.get("/verifyEmail/:token", async (req, res) => {
     );
     // console.log(user);
     if (user) {
-      res.status(200).json({message: "Your email is verified!"});
+      res.status(200).json({ message: "Your email is verified!" });
     } else {
-      res.status(404).json({error: "User not found!"});
+      res.status(404).json({ error: "User not found!" });
     }
   } catch (error) {
-    res.status(500).json({error: "Server Error!"});
+    res.status(500).json({ error: "Server Error!" });
   }
 });
 
@@ -242,7 +242,7 @@ router.post("/logout", async (req, res) => {
     res.clearCookie("refreshToken");
 
     // Respond with a 200 status code and a message to indicate successful logout.
-    res.status(200).json("Completely logout");
+    res.status(200).json({ message: "Completely logout" });
   } catch (error) {
     res.status(500).json({ error: "Server Error!" });
   }
@@ -276,7 +276,7 @@ router.post("/forgotPassword", async (req, res) => {
     });
 
     // Define the reset password URL to be sent in the email and contain the url in url variable.
-    const url = `https://comer-experience-app.onrender.com/resetPassword/${token}`;
+    const url = `https://comer-app.onrender.com/resetPassword/${token}`;
     await transporter.sendMail({
       from: `"Comer Team" <${process.env.NODEMAILER_ID}>`,
       to: email,

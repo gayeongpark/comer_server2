@@ -117,7 +117,7 @@ router.get("/", async (req, res) => {
 //   fileFilter: (req, file, callback) => {
 //     // console.log(req)
 //     // console.log('File filter:', file);
-//     // I am accpeting only png, jpg and jpeg.
+//     // I am accepting only png, jpg and jpeg.
 //     if (
 //       file.mimetype === "image/png" ||
 //       file.mimetype === "image/jpg" ||
@@ -268,7 +268,7 @@ router.post(
   }
 );
 
-// I made the update functionality each part because I want to make user update what they want only, insead of all together
+// I made the update functionality each part because I want to make user update what they want only, instead of all together
 
 // update Image
 router.put(
@@ -727,8 +727,8 @@ router.put("/:id/updatePriceCurrency", authenticateUser, async (req, res) => {
   }
 });
 
-// Update availiability
-router.put("/:id/updateAvailiability", authenticateUser, async (req, res) => {
+// Update availability
+router.put("/:id/updateAvailability", authenticateUser, async (req, res) => {
   try {
     const { id } = req.params;
     const experience = await Experience.findById(id);
@@ -841,7 +841,7 @@ router.delete("/deleteAExperience/:id", authenticateUser, async (req, res) => {
       experienceId: experience.id,
     });
     if (!availability) {
-      res.status(404).json("I cannot find the availiable slot!");
+      res.status(404).json("I cannot find the available slot!");
     }
   } catch (error) {
     res.status(500).json("Failed to delete the experience post!");
@@ -1039,7 +1039,7 @@ router.delete(
 
 // Search
 // It must be revised
-// I did not implet search request to the client
+// I did not implement search request to the client
 // It should be revised much more
 router.get("/searchExperience/:cityName", async (req, res) => {
   try {
